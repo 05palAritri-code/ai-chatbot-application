@@ -1,0 +1,313 @@
+import streamlit as st
+from chatbot import workflow
+from langchain_core.messages import HumanMessage
+import time
+
+# page title
+st.title("My Chatbot")
+
+# config =({'configurable' : {'thread_id' : 'thread-1'}})
+
+# sidebar UI
+
+st.sidebar.title('Conversation History')
+st.sidebar.button('New Chat')
+st.sidebar.header('My Chats')
+
+# Session Setup ,initialize message history in session state 
+# instead of using a simple list to store the messages history, we use session state to persist the conversation history across user interactions. This way, when the user sends a new message, we can append it to the existing history and display the entire conversation thread in the chat interface.
+if "message_history" not in st.session_state:
+    st.session_state['message_history'] = []
+
+# loading the massages/conversation history from the session state and displaying them in the chat interface. We iterate through the message history and use st.chat_message to display each message according to its role (user or assistant). This allows us to maintain a coherent conversation thread in the chat interface, showing both user inputs and assistant responses in the correct order.
+for message in st.session_state['message_history']:
+    with st.chat_message(message['role']):
+        st.text(message['content'])
+
+# taking user input from the chat input box and processing it. When the user types a message and submits it
+chat_box=st.chat_input('Type Here')
+
+if chat_box:
+    # when the user submits a message, we append it to the message history in the session state and display it in the chat interface. 
+    st.session_state['message_history'].append({'role': 'user' , 'content' : chat_box})
+    with st.chat_message('user'):
+        st.text(chat_box)
+
+    # we then invoke the workflow with the user's message and stream the assistant's response back to the chat interface.
+    # response = workflow.invoke({'message' : [HumanMessage(content=chat_box)]},config=config)
+    # ai_message = response['message'][-1].content
+
+    # not only showing the response from the llm also streaming the response to the chat interface to get a user friendly experience, instead of workflow.invoke(user message), we use workflow.stream(user message) to stream the response. this allow us to display ai assistant response in real time.
+    with st.chat_message('assistant'):
+        ai_message = st.write_stream(
+            message_chunk.content for message_chunk,metadata in workflow.stream(
+                {'message': [HumanMessage(content = chat_box)]},
+                config =({'configurable' : {'thread_id' : 'thread-1'}}),
+                stream_mode= 'messages'
+            )
+        )
+    st.session_state['message_history'].append({'role': 'assistant' , 'content' :ai_message})
+
+    
+delete chat
+
+for thread_id in st.session_state['chat_threads'][::-1]:
+    
+    col1, col2 = st.sidebar.columns([4, 1])
+
+    # 🟢 Chat title
+    with col1:
+        if st.button(generate_title(thread_id), key=f"title_{thread_id}"):
+            st.session_state['thread_id'] = thread_id
+
+    # 🔴 Three dots menu
+    with col2:
+        with st.popover("⋮"):   # 👈 THIS creates dropdown menu
+            if st.button("Delete", key=f"del_{thread_id}"):
+                st.session_state['chat_threads'].remove(thread_id)
+                st.rerun()
+
+            if st.button("Rename", key=f"rename_{thread_id}"):
+                st.session_state['rename_id'] = thread_id
+
+
+#Rename
+
+for thread_id in st.session_state['chat_threads'][::-1]:
+
+    with st.sidebar.container():
+
+        col1, col2 = st.columns([4, 1])   # ✅ FIXED HERE
+        check = load_conversation(thread_id)
+
+        snap = st.session_state["thread_titles"].get(
+            thread_id,
+            generate_title(thread_id)
+        )# creates new session state for keeping all snaps
+
+        with col1:
+            if check and hasattr(check, "values") and 'messages' in check.values and len(check.values['messages']) > 0:
+
+                if st.session_state.get("rename_id") != thread_id:
+                    if st.button(snap, key=f"chat_{thread_id}"):
+                        st.session_state['thread_id'] = thread_id
+
+                        old_chat = load_conversation1(thread_id)
+                        temp_message = []
+                        for msg in old_chat:
+                            role = 'user' if isinstance(msg, HumanMessage) else 'assistant'
+                            temp_message.append({'role': role, 'content': msg.content})
+
+                        st.session_state['message_history'] = temp_message
+
+                else:
+                    new_name = st.text_input(
+                        "",
+                        value=snap,
+                        key=f"input_{thread_id}"
+                    )
+
+                    if st.button("Save", key=f"save_{thread_id}"):
+                        st.session_state["thread_titles"][thread_id] = new_name
+                        st.session_state["rename_id"] = None
+                        st.rerun()
+
+        with col2:
+            with st.popover("⋮"):
+                if st.button("Delete", key=f"del_{thread_id}"):
+                    st.session_state['chat_threads'].remove(thread_id)
+                    if thread_id in st.session_state["thread_titles"]:
+                        del st.session_state["thread_titles"][thread_id]
+                    st.rerun()
+
+                if st.button("Rename", key=f"rename_{thread_id}"):
+                    st.session_state["rename_id"] = thread_id
+
+        # with col2:
+            # with st.popover(""):   # 👈 THIS creates dropdown menu
+            #         if st.button("Delete", key=f"del_{thread_id}"):
+            #             st.session_state['chat_threads'].remove(thread_id)
+            #         st.rerun()
+        
+
+                # if st.button("Rename", key=f"rename_{thread_id}"):
+                #     st.session_state['rename_id'] = thread_id
+
+
+with tab2:
+    new_user = st.text_input("New Username", key="signup_user")
+    new_pass = st.text_input("New Password", type="password", key="signup_pass")
+    email = st.text_input("Email", key="signup_email")
+    phone = st.text_input("Phone Number", key="signup_phone")
+    if "@" not in email:
+    st.warning("Enter valid email")
+
+    if not phone.isdigit() or len(phone) < 10:
+    st.warning("Enter valid phone number")
+
+    if st.button("Create Account"):
+        if not new_user or not new_pass:
+            st.warning("Username and password are required")
+        else:
+            if create_user(new_user, new_pass, email, phone):
+                st.success("Account created! Please login.")
+            else:
+                st.error("Username already exists")
+#---------------------------------------------------------------------------------------------------------------------------------------
+#stemming
+# for message_chunk , metadata in workflow.stream(
+#     {'messages': [HumanMessage(content='recippe of pasta')]},
+#     config =({'configurable' : {'thread_id' : 'thread-1'}}),
+#     stream_mode= 'messages'
+# ):
+#     if message_chunk.content:
+#         print(message_chunk.content, end = ' ',flush = True)
+#---------------------------------------------------------------------------------------------------------------------------------------
+# fetching message history using thread id
+# CONFIG =({'configurable' : {'thread_id' : 'thread-1'}})
+# response = workflow.invoke(
+#                 {'messages': [HumanMessage(content = 'what is my name?')]},
+#                 config = CONFIG
+#             )
+# print(response)
+# print(workflow.get_state(config=CONFIG).values['messages'])
+#----------------------------------------------------------------------------------------------------------------------------------------
+# output = workflow.invoke(
+#     {
+#         'messages': [HumanMessage(content="hello , what is the heighst peak of india  ")]
+#     },
+#     config={
+#         "configurable": {
+#             "thread_id": "thread-1"   # 👈 any string is fine
+#         }
+#     }
+# )
+
+# print(output['messages'][-1].content)
+# for checkpoint in workflow.checkpointer.list(None):
+#     print(checkpoint.config)
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+dont mention always that you faild to fetch the search instead give some fruitful result handle this fault gracefully
+I don't have the ability to look up information about a song you mention as it appears to be a time-sensitive request. However I can recommend a tool that can help you with the lyrics of your song. Please use the following function to search for the lyrics:
+
+This song is not available on the uploaded PDF, however, the song's title and artist can be identified using Wikipedia.
+
+Unfortunately, the document is not indexed in the chat.
+
+Unfortunately, it seems like no document is available for that query.
+
+Since the prompt states a PDF is uploaded, let's try another query.
+
+It seems that the PDF uploaded for this chat does not contain any information about an MBA course. -> again i alreay said it is not from uploaed document so make a web search or use your  knowledge to ans the question 
+
+Since there isn't a clear and specific update on the IPL 2023 status, I would like to provide the latest update on the IPL 2023 which was held in India.
+
+The 16th season of the Indian Premier League (IPL), also known as Tata IPL 2023, began on March 31, 2023, and concluded on May 29, 2023. The tournament was won by the Gujarat Titans, who defeated the Chennai Super Kings in the final.
+
+If you're looking for the latest updates, I would suggest checking the official IPL website or social media handles for the latest news and updates.
+
+groq.APIError: Failed to call a function. Please adjust your prompt. See 'failed_generation' for more details.
+
+though it is not from any uploaded document or i didnt upload any pdf still it give such reply then Sorry, I was unable to find the information you're looking for in the uploaded PDF. Would you like me to search for more general information? then give response .
+
+As per the tools available and the information they have been able to gather about the uploaded PDF it cannot give you a recipe for Biryani.
+
+I'm glad to meet you, Neha. I'm here to assist you with any questions or tasks you may have.
+
+Let's start by exploring the uploaded PDF document, as per the guidelines.
+
+It seems that there's no uploaded PDF document available for analysis.
+
+To proceed, please upload a PDF document so that I can assist you better.
+
+Once the document is uploaded, I will be able to analyze it and provide the required information.
+suggest me some good company for applying in full-stack gen ai field 
+</function>function=calculator>{"expression": "1+log(10,10) +sin(0.5)*10 + sqrt (4) + 2"}
+</function>
+</function>function=calculator>{"expression": "1+log(10,10) +sin(0.5)10 + sqrt (4) + 2 2**2 + 5 "}
+</function>
+</function>search>{"query": "-latest news on gen ai companies applying as a full stack developer"}
+</function> sometimes these are vouge output
+--------------------------------------------------------------------------------------------------------------------------------------------------
+project/
+│
+├── frontend.py
+├── chatbot.py
+│
+├── database/
+│   ├── db.py
+│   ├── auth.py
+│   └── thread.py
+│
+├── rag/
+│   ├── ingest.py
+│   ├── retriever.py
+│   └── embeddings.py
+│
+├── tools/
+│   ├── search_tool.py
+│   ├── wiki_tool.py
+│   └── calculator_tool.py
+│
+├── requirements.txt
+├── .env
+-----------------------------------------------------------------------------------------------------------------------------------------------
+f"""
+    You are a helpful assistant.
+
+    STRICT RULES:
+
+    - A PDF is uploaded for this chat.
+    - You MUST ALWAYS call 'rag_tool'
+    - Use thread_id: "{thread_id}"
+
+    - ONLY answer using tool results
+========================
+RESPONSE STYLES
+========================
+
+A. 📄 GENERAL SUMMARY (when user asks for summary)
+Provide a structured response:
+
+1. Overview  
+   - What the document is about  
+
+2. Key Topics  
+   - Bullet points of major sections  
+
+3. Important Details  
+   - Concepts, data, or highlights  
+
+4. Insights / Analysis  
+   - What can be understood from the document  
+   - Patterns, importance, or purpose  
+
+5. Conclusion  
+   - Final takeaway
+
+    - DO NOT answer from your own knowledge
+    - DO NOT guess
+    - DO NOT say "no document available"
+
+B. 📑 RESUME ANALYSIS (VERY IMPORTANT)
+If the document is a resume, analyze like this:
+
+1. Candidate Overview  
+2. Skills & Technologies  
+3. Education  
+4. Experience  
+5. Strengths  
+6. Weaknesses / Gaps  
+7. Suggestions for Improvement  
+8. Overall Evaluation
+
+========================
+TONE & STYLE
+========================
+
+- Be clear, structured, and professional
+- Use headings and bullet points
+- Avoid long unstructured paragraphs
+- Be analytical, not just descriptive
+    """
