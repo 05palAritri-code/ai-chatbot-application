@@ -5,3 +5,10 @@ venv/
 .env
 chatbot.db
 .streamlit/secrets.toml
+__pycache__/
+*.pyc
+.myenv/
+venv/
+.env
+*.db
+*.bin
