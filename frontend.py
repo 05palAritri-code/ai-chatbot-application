@@ -496,7 +496,13 @@ def show_app():
                         #         st.session_state['message_history'] = temp_message
                             with col1:
 
-                                if st.button(f"{snap} ....", key=thread_id):
+                                is_active = thread_id == st.session_state["thread_id"]
+
+                                button_label = f"🟢 {snap}" if is_active else snap
+
+                                if st.button(button_label, key=thread_id):
+
+                                # if st.button(f"{snap} ....", key=thread_id):
 
                                     st.session_state['thread_id'] = thread_id
 
