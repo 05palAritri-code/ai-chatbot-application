@@ -3,6 +3,7 @@ import re
 from turtle import st
 import uuid
 from db_manager import get_connection
+from chat import workflow
 
 conn = get_connection()
 
