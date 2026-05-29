@@ -1,6 +1,7 @@
 from utils import (generate_thread_id)
 import streamlit as st
 from db_manager import get_connection
+from ingest import _THREAD_RETRIEVERS, _THREAD_METADATA
 
 def reset_chat():
     thread_id = generate_thread_id()

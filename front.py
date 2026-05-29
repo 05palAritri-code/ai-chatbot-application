@@ -1,4 +1,4 @@
-from threads import (reset_chat, add_thread, add_threads, retrive_threads, thread_has_document)
+from threads import (reset_chat, add_thread,  retrive_threads, delete_thread, rename_thread)
 from utils import ( save_thread, update_thread_title, save_message,load_messages, generate_thread_id, generate_title)
 from auth import (create_user, login_user)
 from langchain_core.messages import AIMessage, HumanMessage,ToolMessage
