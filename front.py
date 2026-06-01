@@ -4,7 +4,7 @@ from back_utils import (
 from front_utils import (
     reset_chat,generate_thread_id , add_thread ,generate_title
 )
-from auth import (create_user, login_user)
+from auth import (create_user, login_user , verify_otp)
 from chat import workflow
 from langchain_core.messages import AIMessage, HumanMessage,ToolMessage
 from streamlit_cookies_manager import EncryptedCookieManager
@@ -84,7 +84,13 @@ def show_auth():
                         password
                     )
 
-                    if result == "success":
+                    if result == "otp_sent":
+
+                        st.session_state["pending_email"] = email
+
+                        st.success(
+                            "OTP sent to your email."
+                        )
 
                         st.success(
                             "Account created successfully! Please login."
@@ -101,6 +107,30 @@ def show_auth():
                     else:
 
                         st.error("Something went wrong")
+            if "pending_email" in st.session_state:
+
+                otp_input = st.text_input(
+                    "Enter OTP"
+                )
+
+                if st.button("Verify OTP"):
+
+                    if verify_otp(
+                        st.session_state["pending_email"],
+                        otp_input
+                    ):
+
+                        st.success(
+                            "Email verified successfully."
+                        )
+
+                        del st.session_state["pending_email"]
+
+                    else:
+
+                        st.error(
+                            "Invalid or expired OTP."
+                        )
 
         # -------- LOGIN --------
         with tab1:

@@ -2,6 +2,7 @@ from db_manager import get_connection
 import streamlit as st
 from chat import workflow
 
+
 def save_thread(thread_id, username, title):
     try:
         conn = get_connection()

@@ -1,8 +1,11 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
 import os
 
+load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
+print("DATABASE_URL:", DATABASE_URL)
 
 def get_connection():
 
@@ -20,10 +23,13 @@ def initialize_database():
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        email TEXT UNIQUE,
-        username TEXT UNIQUE,
-        password TEXT
+    id SERIAL PRIMARY KEY,
+    email TEXT UNIQUE,
+    username TEXT UNIQUE,
+    password TEXT,
+    is_verified BOOLEAN DEFAULT FALSE,
+    otp_code TEXT,
+    otp_expiry TIMESTAMP
     )
     """)
 
@@ -32,7 +38,8 @@ def initialize_database():
         id SERIAL PRIMARY KEY,
         thread_id TEXT UNIQUE,
         username TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        title TEXT
     )
     """)
 
