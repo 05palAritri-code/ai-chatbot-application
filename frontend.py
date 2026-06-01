@@ -498,7 +498,7 @@ def show_app():
 
                                 is_active = thread_id == st.session_state["thread_id"]
 
-                                button_label = f"🟢 {snap}" if is_active else snap
+                                button_label = f"->  {snap}" if is_active else snap
 
                                 if st.button(button_label, key=thread_id):
 

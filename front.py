@@ -1,10 +1,10 @@
 from threads import (reset_chat, add_thread,  retrive_threads, delete_thread, rename_thread)
-from utils import ( save_thread, update_thread_title, save_message,load_messages, generate_thread_id, generate_title)
+from utils import ( save_thread, update_thread_title, save_message,load_messages, generate_thread_id, generate_title , clean_response)
 from auth import (create_user, login_user)
 from chat import workflow
 from langchain_core.messages import AIMessage, HumanMessage,ToolMessage
 from streamlit_cookies_manager import EncryptedCookieManager
-from turtle import st
+import streamlit as st
 from ingest import (ingest_pdf,_THREAD_RETRIEVERS, _THREAD_METADATA, _get_retriever)
 cookies = EncryptedCookieManager(
     prefix="myapp",
@@ -396,7 +396,7 @@ def show_app():
 
                                 is_active = thread_id == st.session_state["thread_id"]
 
-                                button_label = f"🟢 {snap}" if is_active else snap
+                                button_label = f"->  {snap}" if is_active else snap
 
                                 if st.button(button_label, key=thread_id):
 

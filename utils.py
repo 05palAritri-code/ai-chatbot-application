@@ -1,11 +1,7 @@
 import hashlib
 import re
-from turtle import st
 import uuid
-from db_manager import get_connection
-from chat import workflow
 
-conn = get_connection()
 
 def clean_response(text: str) -> str:
 
@@ -26,55 +22,16 @@ def generate_thread_id():
     
     return thread_id
 
-def load_conversation(thread_id):
-    state = workflow.get_state(
-        config={
-            'configurable': {
-                'thread_id': thread_id,
-                'user': st.session_state.username
-            }
-        }
-    )
-    return state
+def get_file_hash(file_bytes):
 
-def load_messages(thread_id):
+    return hashlib.md5(file_bytes).hexdigest()
 
-    try:
 
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            SELECT role, content
-            FROM messages
-            WHERE thread_id=%s
-            ORDER BY id
-            """,
-            (thread_id,)
-        )
-
-        rows = cursor.fetchall()
-
-        return [
-            {
-                "role": row["role"],
-                "content": row["content"]
-            }
-            for row in rows
-        ]
-
-    except Exception as e:
-
-        print("LOAD MESSAGE ERROR:", e)
-
-        return []
     
 
 
 
-def get_file_hash(file_bytes):
 
-    return hashlib.md5(file_bytes).hexdigest()
 
 def save_thread(thread_id, username, title):
     try:

@@ -2,6 +2,7 @@ from utils import (generate_thread_id)
 import streamlit as st
 from db_manager import get_connection
 from ingest import _THREAD_RETRIEVERS, _THREAD_METADATA
+from chat import workflow
 
 def reset_chat():
     thread_id = generate_thread_id()
@@ -144,4 +145,45 @@ def get_thread_title(thread_id):
 
     return None
 
+def load_conversation(thread_id):
+    state = workflow.get_state(
+        config={
+            'configurable': {
+                'thread_id': thread_id,
+                'user': st.session_state.username
+            }
+        }
+    )
+    return state
 
+def load_messages(thread_id):
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT role, content
+            FROM messages
+            WHERE thread_id=%s
+            ORDER BY id
+            """,
+            (thread_id,)
+        )
+
+        rows = cursor.fetchall()
+
+        return [
+            {
+                "role": row["role"],
+                "content": row["content"]
+            }
+            for row in rows
+        ]
+
+    except Exception as e:
+
+        print("LOAD MESSAGE ERROR:", e)
+
+        return []
