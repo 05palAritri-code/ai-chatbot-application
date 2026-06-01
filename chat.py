@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, TypedDict, Annotated
+from typing import  TypedDict, Annotated
 from langgraph.graph.message import add_messages
 from langchain_core.messages import AIMessage, BaseMessage,HumanMessage,SystemMessage
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -6,14 +6,11 @@ from langgraph.graph import StateGraph,START,END
 import re
 from chatbot import _get_retriever
 from prompts import build_system_prompt
-from utils import clean_response
 from llm_manager import llm_with_tools
 from tools import tools
 
 
-class ChatState(TypedDict):
 
-    messages : Annotated[list[BaseMessage],add_messages]
 
 def clean_response(text: str) -> str:
 
@@ -61,6 +58,12 @@ def classify_query(query):
         return "stock"
 
     return "chat"
+
+
+class ChatState(TypedDict):
+
+    messages : Annotated[list[BaseMessage],add_messages]
+
 
 def chat_node(state: ChatState, config=None) -> ChatState:
 
@@ -112,5 +115,4 @@ graph.add_edge(START,'chat_node')
 graph.add_conditional_edges('chat_node',tools_condition)
 graph.add_edge('tools','chat_node')
 
-# workflow = graph.compile(checkpointer=checkpointer)
 workflow = graph.compile()

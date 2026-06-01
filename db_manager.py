@@ -1,7 +1,5 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from chat import workflow
-from streamlit import st
 import os
 
 DATABASE_URL = os.getenv("DATABASE_URL")

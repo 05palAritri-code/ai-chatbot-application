@@ -1,5 +1,5 @@
 from db_manager import get_connection
-
+import streamlit as st
 from chat import workflow
 
 def save_thread(thread_id, username, title):
@@ -22,6 +22,7 @@ def save_thread(thread_id, username, title):
     except Exception as e:
         print("SAVE THREAD ERROR:", e)
 
+
 def update_thread_title(thread_id, title):
 
     try:
@@ -42,66 +43,7 @@ def update_thread_title(thread_id, title):
     except Exception as e:
 
         print("UPDATE TITLE ERROR:", e)
-def save_message(thread_id, role, content):
 
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            INSERT INTO messages
-            (thread_id, role, content)
-            VALUES (%s, %s, %s)
-            """,
-            (thread_id, role, content)
-        )
-
-        conn.commit()
-
-    except Exception as e:
-
-        print("SAVE MESSAGE ERROR:", e)
-
-def save_thread(thread_id, username, title):
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            INSERT INTO threads 
-            (thread_id, username, title)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (thread_id) DO NOTHING
-            """,
-            (thread_id, username, title)
-        )
-
-        conn.commit()
-
-    except Exception as e:
-        print("SAVE THREAD ERROR:", e)
-def update_thread_title(thread_id, title):
-
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            UPDATE threads
-            SET title=%s
-            WHERE thread_id=%s
-            """,
-            (title, thread_id)
-        )
-
-        conn.commit()
-
-    except Exception as e:
-
-        print("UPDATE TITLE ERROR:", e)
 def save_message(thread_id, role, content):
 
     try:
@@ -159,8 +101,6 @@ def retrive_threads(username):
 
         if conn:
             conn.close()
-
-    
 
 
 def delete_thread(thread_id):

@@ -3,6 +3,8 @@ from typing import  Optional
 import wikipedia
 import math
 import requests
+from ingest import _get_retriever , _THREAD_METADATA
+import os 
 
 
 @tool
