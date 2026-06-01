@@ -10,6 +10,12 @@ import os
 
 embeddings = HuggingFaceEmbeddings(model_name = "sentence-transformers/all-MiniLM-L6-v2")
 
+def thread_has_document(thread_id : str) -> bool:
+    return str(thread_id) in _THREAD_RETRIEVERS
+
+def thread_document_metadata(thread_id : str) -> dict:
+    return _THREAD_METADATA.get(str(thread_id),{})
+
 _THREAD_RETRIEVERS : Dict[str,Any] ={}
 _THREAD_METADATA : Dict[str,dict] ={}
 

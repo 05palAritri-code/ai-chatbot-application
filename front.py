@@ -1,11 +1,15 @@
 from threads import (reset_chat, add_thread,  retrive_threads, delete_thread, rename_thread)
-from utils import ( save_thread, update_thread_title, save_message,load_messages, generate_thread_id, generate_title , clean_response)
+from utils import ( 
+    save_thread, update_thread_title, save_message,load_messages, generate_thread_id, generate_title , clean_response
+    )
 from auth import (create_user, login_user)
 from chat import workflow
 from langchain_core.messages import AIMessage, HumanMessage,ToolMessage
 from streamlit_cookies_manager import EncryptedCookieManager
 import streamlit as st
 from ingest import (ingest_pdf,_THREAD_RETRIEVERS, _THREAD_METADATA, _get_retriever)
+
+
 cookies = EncryptedCookieManager(
     prefix="myapp",
     password="some-secret-key"
@@ -136,29 +140,6 @@ def show_app():
     if "ingested_docs" not in st.session_state:
         st.session_state["ingested_docs"] = {}
         
-
-    # if 'chat_threads' not in st.session_state:
-    #     st.session_state['chat_threads'] = retrive_threads(username=st.session_state.username)
-    # add_threads(st.session_state['thread_id'])
-    # if 'chat_threads' not in st.session_state:
-    #     if st.session_state.get("logged_in") and st.session_state.get("username"):
-    #         st.session_state['chat_threads'] = retrive_threads(st.session_state.username)
-    #     else:
-    #         st.session_state['chat_threads'] = []
-    # if st.session_state.logged_in and st.session_state.username:
-
-    #     st.session_state['chat_threads'] = retrive_threads(
-    #         st.session_state.username
-    #     )
-
-    # else:
-    #     st.session_state['chat_threads'] = []
-    # add_threads(st.session_state['thread_id'])
-
-    # if "ingested_docs" not in st.session_state:
-    #     st.session_state["ingested_docs"] = {}
-    # add_thread(st.session_state["thread_id"])
-    # Always load chats fresh from database
     if st.session_state.logged_in and st.session_state.username:
 
         st.session_state['chat_threads'] = retrive_threads(
@@ -191,21 +172,6 @@ def show_app():
         with st.sidebar:
             st.markdown(f"### 👤 {st.session_state.username}")
 
-            # if st.button("Logout"):
-            #     st.session_state.logged_in = False
-            #     st.session_state.username = None
-
-            #     # 🔥 CLEAR OLD USER DATA
-            #     st.session_state['chat_threads'] = []
-            #     st.session_state['message_history'] = []
-            #     st.session_state['thread_id'] = None
-
-            #     cookies["logged_in"] = "false"
-            #     cookies["email"] = ""
-                
-            #     cookies.save()
-
-            #     st.rerun()
             if st.button("Logout"):
 
                 st.session_state.logged_in = False
@@ -296,32 +262,6 @@ def show_app():
                         )
 
                     st.rerun()
-   
-
-
-            # if thread_docs:
-            #     latest_doc = list(thread_docs.values())[-1]
-            #     st.sidebar.success(
-            #         f"Using `{latest_doc.get('filename')}` "
-            #         f"({latest_doc.get('chunks')} chunks from {latest_doc.get('documents')} pages)"
-            #     )
-            # else:
-            #     st.sidebar.info("No PDF indexed yet.")
-
-            # uploaded_pdf = st.sidebar.file_uploader("Upload a PDF for this chat", type=["pdf"])
-            # if uploaded_pdf:
-            #     if uploaded_pdf.name in thread_docs:
-            #         st.sidebar.info(f"`{uploaded_pdf.name}` already processed for this chat.")
-            #     else:
-            #         with st.sidebar.status("Indexing PDF…", expanded=True) as status_box:
-            #             summary = ingest_pdf(
-            #                 uploaded_pdf.getvalue(),
-            #                 thread_id=thread_key,
-            #                 filename=uploaded_pdf.name,
-            #             )
-            #             thread_docs[uploaded_pdf.name] = summary
-            #             status_box.update(label="✅ PDF indexed", state="complete", expanded=False)
-
             st.markdown("---")
 # -----------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -344,54 +284,7 @@ def show_app():
                             update_thread_title(thread_id, snap)
 
                         with st.sidebar.container():
-                        # with col1:
-                        #     if st.button(f"{snap} ....", key=thread_id):
-                        #         st.session_state['thread_id']= thread_id
-                                    
-                        #         # old_chat = load_conversation(thread_id)
-                        #         # state = load_conversation(thread_id)
-                        #         # old_chat = state.values.get("messages", [])
-                        #         old_chat = load_messages(thread_id)
-                        #         temp_message = []
-
-                        #         # for msg in old_chat:
-                        #         #     if isinstance(msg, HumanMessage):
-                        #         #         role = 'user'
-                        #         #     else:
-                        #         #         role = 'assistant'
-                        #         #     temp_message.append({'role': role, 'content': msg.content})
-                        #         for msg in old_chat:
-                        #             # skip tool outputs completely
-                        #             if isinstance(msg, ToolMessage):
-                        #                 continue
-
-                        #             if isinstance(msg, HumanMessage):
-
-                        #                 temp_message.append({
-                        #                     'role': 'user',
-                        #                     'content': msg.content
-                        #                 })
-
-                        #             elif isinstance(msg, AIMessage):
-
-                        #                 # skip empty/tool-call AI messages
-                        #                 if not msg.content:
-                        #                     continue
-
-                        #                 # skip raw dict/json outputs
-                        #                 if isinstance(msg.content, str):
-
-                        #                     if (
-                        #                         msg.content.startswith("{")
-                        #                         and "context" in msg.content
-                        #                     ):
-                        #                         continue
-
-                        #                 temp_message.append({
-                        #                     'role': 'assistant',
-                        #                     'content': msg.content
-                        #                 })
-                        #         st.session_state['message_history'] = temp_message
+                        
                             with col1:
 
                                 is_active = thread_id == st.session_state["thread_id"]
@@ -557,7 +450,3 @@ def show_app():
 
 
 
-if not st.session_state.logged_in:
-    show_auth()
-else:
-    show_app()

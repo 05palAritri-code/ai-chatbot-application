@@ -1,6 +1,5 @@
 from langchain_groq import ChatGroq
 from tools import tools
-import os
 from dotenv import load_dotenv
 
 load_dotenv()

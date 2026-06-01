@@ -1,3 +1,7 @@
-from db_manager import initialize_database
+from front import show_app, show_auth
+from streamlit import st
 
-initialize_database()
+if not st.session_state.logged_in:
+    show_auth()
+else:
+    show_app()

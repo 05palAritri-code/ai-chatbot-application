@@ -3,7 +3,7 @@ from langgraph.graph.message import add_messages
 from langchain_core.messages import AIMessage, BaseMessage,HumanMessage,SystemMessage
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.graph import StateGraph,START,END
-
+import re
 from chatbot import _get_retriever
 from prompts import build_system_prompt
 from utils import clean_response
@@ -14,6 +14,20 @@ from tools import tools
 class ChatState(TypedDict):
 
     messages : Annotated[list[BaseMessage],add_messages]
+
+def clean_response(text: str) -> str:
+
+    patterns = [
+        r"</function>",
+        r"function=.*?>",
+        r"groq\.APIError.*",
+        r"failed_generation.*"
+    ]
+
+    for pattern in patterns:
+        text = re.sub(pattern, "", text, flags=re.IGNORECASE)
+
+    return text.strip()
 
 
 def classify_query(query):

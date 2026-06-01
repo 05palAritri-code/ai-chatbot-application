@@ -1,24 +1,127 @@
-from utils import (generate_thread_id)
-import streamlit as st
 from db_manager import get_connection
-from ingest import _THREAD_RETRIEVERS, _THREAD_METADATA
+
 from chat import workflow
 
-def reset_chat():
-    thread_id = generate_thread_id()
-    # save_thread(thread_id,st.session_state.username)
-    st.session_state['thread_id'] = thread_id
-    add_threads(st.session_state['thread_id'])
+def save_thread(thread_id, username, title):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
 
-    st.session_state['message_history'] = []
+        cursor.execute(
+            """
+            INSERT INTO threads 
+            (thread_id, username, title)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (thread_id) DO NOTHING
+            """,
+            (thread_id, username, title)
+        )
 
-def add_thread(thread_id):
-    if thread_id not in st.session_state["chat_threads"]:
-        st.session_state["chat_threads"].append(thread_id)
+        conn.commit()
 
-def add_threads(thread_id):
-    if thread_id not in st.session_state['chat_threads']:
-        st.session_state['chat_threads'].append(thread_id)
+    except Exception as e:
+        print("SAVE THREAD ERROR:", e)
+
+def update_thread_title(thread_id, title):
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE threads
+            SET title=%s
+            WHERE thread_id=%s
+            """,
+            (title, thread_id)
+        )
+
+        conn.commit()
+
+    except Exception as e:
+
+        print("UPDATE TITLE ERROR:", e)
+def save_message(thread_id, role, content):
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO messages
+            (thread_id, role, content)
+            VALUES (%s, %s, %s)
+            """,
+            (thread_id, role, content)
+        )
+
+        conn.commit()
+
+    except Exception as e:
+
+        print("SAVE MESSAGE ERROR:", e)
+
+def save_thread(thread_id, username, title):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO threads 
+            (thread_id, username, title)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (thread_id) DO NOTHING
+            """,
+            (thread_id, username, title)
+        )
+
+        conn.commit()
+
+    except Exception as e:
+        print("SAVE THREAD ERROR:", e)
+def update_thread_title(thread_id, title):
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE threads
+            SET title=%s
+            WHERE thread_id=%s
+            """,
+            (title, thread_id)
+        )
+
+        conn.commit()
+
+    except Exception as e:
+
+        print("UPDATE TITLE ERROR:", e)
+def save_message(thread_id, role, content):
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO messages
+            (thread_id, role, content)
+            VALUES (%s, %s, %s)
+            """,
+            (thread_id, role, content)
+        )
+
+        conn.commit()
+
+    except Exception as e:
+
+        print("SAVE MESSAGE ERROR:", e)
 
 def retrive_threads(username):
 
@@ -58,11 +161,7 @@ def retrive_threads(username):
             conn.close()
 
     
-def thread_has_document(thread_id : str) -> bool:
-    return str(thread_id) in _THREAD_RETRIEVERS
 
-def thread_document_metadata(thread_id : str) -> dict:
-    return _THREAD_METADATA.get(str(thread_id),{})
 
 def delete_thread(thread_id):
 
