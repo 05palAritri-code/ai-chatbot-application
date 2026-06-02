@@ -5,15 +5,13 @@ from datetime import datetime, timedelta
 import smtplib
 import os
 from email.mime.text import MIMEText
+import bcrypt
 from dotenv import load_dotenv
 
 load_dotenv()
 
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-
-
-
+EMAIL_PASSWORD = os.getenv("EMAIL_APP_PASSWORD")
 
 def hash_password(password):
 
@@ -23,6 +21,14 @@ def hash_password(password):
     )
 
     return hashed.decode()
+
+
+def verify_password(password, hashed_password):
+
+    return bcrypt.checkpw(
+        password.encode(),
+        hashed_password.encode()
+    )
 
 def send_otp_email(receiver_email, otp):
 
@@ -127,6 +133,8 @@ def verify_otp(email, entered_otp):
 
         if conn:
             conn.close()
+
+
 def create_user(email, username, password):
 
     try:
@@ -198,15 +206,11 @@ def login_user(email, password):
 
         cursor.execute(
             """
-            SELECT username,is_verified
+            SELECT *
             FROM users
             WHERE email=%s
-            AND password=%s
             """,
-            (
-                email,
-                hash_password(password)
-            )
+            (email,)
         )
 
         user = cursor.fetchone()
@@ -217,13 +221,23 @@ def login_user(email, password):
         if not user["is_verified"]:
             return "not_verified"
 
-        return user
+        if verify_password(
+            password,
+            user["password"]
+        ):
+            return user
+
+        return None
 
     except Exception as e:
 
         print("LOGIN ERROR:", e)
-
         return None
+
+    finally:
+
+        cursor.close()
+        conn.close()
     
 def generate_otp():
 

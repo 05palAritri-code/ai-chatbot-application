@@ -12,6 +12,7 @@ import streamlit as st
 from ingest import (ingest_pdf,_THREAD_RETRIEVERS, _THREAD_METADATA, _get_retriever)
 
 
+
 cookies = EncryptedCookieManager(
     prefix="myapp",
     password="some-secret-key"
@@ -93,7 +94,7 @@ def show_auth():
                         )
 
                         st.success(
-                            "Account created successfully! Please login."
+                                "OTP sent to your email. Please verify your email to activate your account."
                         )
 
                     elif result == "email_exists":
@@ -107,30 +108,30 @@ def show_auth():
                     else:
 
                         st.error("Something went wrong")
-            if "pending_email" in st.session_state:
+                        
+        if "pending_email" in st.session_state:
 
-                otp_input = st.text_input(
-                    "Enter OTP"
-                )
+            otp_input = st.text_input(
+                "Enter OTP"
+            )
 
-                if st.button("Verify OTP"):
+            if st.button("Verify OTP"):
 
-                    if verify_otp(
-                        st.session_state["pending_email"],
-                        otp_input
-                    ):
+                if verify_otp(
+                    st.session_state["pending_email"],
+                    otp_input
+                ):
 
-                        st.success(
-                            "Email verified successfully."
-                        )
+                    st.success(
+                        "Email verified successfully."
+                    )
 
-                        del st.session_state["pending_email"]
+                    del st.session_state["pending_email"]
 
-                    else:
-
-                        st.error(
-                            "Invalid or expired OTP."
-                        )
+                else:
+                    st.error(
+                        "Invalid or expired OTP."
+                    )
 
         # -------- LOGIN --------
         with tab1:
@@ -219,12 +220,17 @@ def show_app():
                 st.session_state['thread_id'] = None
 
 
-                cookies["logged_in"] = "false"
+                cookies["logged_in"] = ""
+                cookies["username"] = ""
                 cookies["email"] = ""
 
                 cookies.save()
 
+                # print("COOKIE AFTER CLEAR:", cookies.get("username"))
+
                 st.rerun()
+                
+
 
             if st.button('New Chat'):
                 reset_chat()
