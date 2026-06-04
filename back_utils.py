@@ -24,7 +24,7 @@ def save_thread(thread_id, username, title):
         print("SAVE THREAD ERROR:", e)
 
 
-def update_thread_title(thread_id, title):
+def update_thread_title(thread_id , title):
 
     try:
         conn = get_connection()
@@ -36,7 +36,7 @@ def update_thread_title(thread_id, title):
             SET title=%s
             WHERE thread_id=%s
             """,
-            (title, thread_id)
+            (title , thread_id)
         )
 
         conn.commit()
@@ -185,16 +185,16 @@ def get_thread_title(thread_id):
 
     return None
 
-def load_conversation(thread_id):
-    state = workflow.get_state(
-        config={
-            'configurable': {
-                'thread_id': thread_id,
-                'user': st.session_state.username
-            }
-        }
-    )
-    return state
+# def load_conversation(thread_id):
+#     state = workflow.get_state(
+#         config={
+#             'configurable': {
+#                 'thread_id': thread_id,
+#                 'user': st.session_state.username
+#             }
+#         }
+#     )
+#     return state
 
 def load_messages(thread_id):
 

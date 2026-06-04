@@ -1,5 +1,5 @@
 from back_utils import (
-    load_messages , load_conversation , get_thread_title , rename_thread , delete_thread , retrive_threads , save_message , update_thread_title ,save_thread
+    load_messages ,  rename_thread , delete_thread , retrive_threads , save_message , update_thread_title ,save_thread
 )
 from front_utils import (
     reset_chat,generate_thread_id , add_thread ,generate_title
@@ -40,6 +40,15 @@ def show_auth():
     st.title("My Chatbot")
 
     if not st.session_state.logged_in:
+        
+        if st.session_state.get("signup_success"):
+
+            st.success(
+                "✅ Account created successfully. Please login."
+            )
+
+            del st.session_state["signup_success"]
+
         tab1, tab2 = st.tabs(["Login", "Signup"])
 
         # -------- SIGNUP --------
@@ -127,6 +136,12 @@ def show_auth():
                     )
 
                     del st.session_state["pending_email"]
+
+                    st.session_state["signup_success"] = True
+
+                    st.rerun()
+                    
+                    
 
                 else:
                     st.error(
@@ -318,8 +333,8 @@ def show_app():
                     # check = load_conversation(thread_id)
                     # if check and hasattr(check, "values") and 'messages' in check.values and len(check.values['messages']) > 0:
                         snap = generate_title(thread_id)
-                        if snap and snap != "new chat":
-                            update_thread_title(thread_id, snap)
+                        # if snap and snap != "new chat":
+                        #     update_thread_title(thread_id , snap)
 
                         with st.sidebar.container():
                         

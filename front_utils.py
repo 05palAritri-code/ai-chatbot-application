@@ -2,6 +2,7 @@ import hashlib
 import streamlit as st
 import uuid
 from back_utils import ( get_thread_title , load_messages )
+
 def generate_thread_id():
     thread_id = str(uuid.uuid4())
     
@@ -21,11 +22,6 @@ def reset_chat():
 
 def generate_title(thread_id):
 
-    custom_title = get_thread_title(thread_id)
-
-    if custom_title and custom_title != "New Chat":
-
-        return custom_title
 
     messages = load_messages(thread_id)
 
@@ -33,9 +29,11 @@ def generate_title(thread_id):
 
         msg = messages[0]["content"]
         snap = " ".join(msg.split()[:5])
-        return snap
+        get_thread_title(snap)
+    return snap
 
-    return "new chat"
+    
+
 def get_file_hash(file_bytes):
 
     return hashlib.md5(file_bytes).hexdigest()

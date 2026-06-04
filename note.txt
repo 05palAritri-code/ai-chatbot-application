@@ -311,3 +311,5 @@ TONE & STYLE
 - Avoid long unstructured paragraphs
 - Be analytical, not just descriptive
     """
+
+groq.APIError: Failed to call a function. Please adjust your prompt. See 'failed_generation' for more details.
