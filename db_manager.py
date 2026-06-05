@@ -54,5 +54,16 @@ def initialize_database():
 
     conn.commit()
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS documents (
+        id SERIAL PRIMARY KEY,
+        thread_id TEXT NOT NULL,
+        filename TEXT NOT NULL,
+        chunk_text TEXT NOT NULL,
+        embedding VECTOR(384),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     checkpointer = None
 
