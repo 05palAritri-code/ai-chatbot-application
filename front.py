@@ -9,7 +9,7 @@ from chat import workflow
 from langchain_core.messages import AIMessage, HumanMessage,ToolMessage
 from streamlit_cookies_manager import EncryptedCookieManager
 import streamlit as st
-from ingest import (ingest_pdf,_THREAD_RETRIEVERS, _THREAD_METADATA, _get_retriever)
+from ingest import (ingest_pdf,_THREAD_RETRIEVERS, _THREAD_METADATA)
 
 
 

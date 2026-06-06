@@ -114,11 +114,18 @@ def rag_tool(query : str, thread_id : Optional[str]) -> str:
     """
 
     retriever = _get_retriever(thread_id)
+    # if not retriever:
+    #     return {
+    #         'error' : "No document  indexed for this chat , Please upload a PDF to use this tool.",
+    #         'query' : query
+    #     }
+
     if not retriever:
         return {
-            'error' : "No document  indexed for this chat , Please upload a PDF to use this tool.",
-            'query' : query
+            "error": "No document indexed for this chat.",
+            "query": query,
         }
+
     result = retriever.invoke(query)
     context = [doc.page_content for doc in result]
     metadata = [doc.metadata for doc in result]
