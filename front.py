@@ -221,7 +221,7 @@ def show_app():
     if st.session_state.logged_in:
 
         with st.sidebar:
-            st.markdown(f"### 👤 {st.session_state.username}")
+            st.markdown(f"### {st.session_state.username}")
 
             if st.button("Logout"):
 
@@ -258,29 +258,42 @@ def show_app():
             st.markdown("---")
 
             if thread_docs:
+
                 latest_doc = list(thread_docs.values())[-1]
-                st.sidebar.success(
-                    f"Using `{latest_doc.get('filename')}` "
-                    f"({latest_doc.get('chunks')} chunks from {latest_doc.get('documents')} pages)"
+
+                st.success(
+                    f"""
+                    Knowledge Base Active
+
+                    File: {latest_doc.get('filename')}
+
+                    Pages: {latest_doc.get('documents')}
+
+                    Chunks: {latest_doc.get('chunks')}
+
+                    Status: Indexed
+                    """
                 )
-                st.sidebar.markdown("### Uploaded Documents")
 
             else:
-                st.sidebar.info("No PDF indexed yet.")
+
+                st.info(
+                    "No Knowledge Base Attached"
+                )
 
             uploaded_pdf = st.sidebar.file_uploader("Upload a PDF for this chat",type=["pdf"])
 
-            # ---------------- REMOVE DOCUMENT STATE ----------------
-            if uploaded_pdf is None:
+            # if uploaded_pdf is None: 
+            #     if thread_key in st.session_state["ingested_docs"]: 
+            #         del st.session_state["ingested_docs"][thread_key] 
 
-                if thread_key in st.session_state["ingested_docs"]:
-                    del st.session_state["ingested_docs"][thread_key]
+                # if thread_key in _THREAD_RETRIEVERS: 
+                    # del _THREAD_RETRIEVERS[thread_key] 
+                    
+                # if thread_key in _THREAD_METADATA: 
+                    # del _THREAD_METADATA[thread_key]
 
-                # if thread_key in _THREAD_RETRIEVERS:
-                #     del _THREAD_RETRIEVERS[thread_key]
-
-                # if thread_key in _THREAD_METADATA:
-                #     del _THREAD_METADATA[thread_key]
+            
 
             if uploaded_pdf:
 
@@ -303,21 +316,37 @@ def show_app():
 
                     with st.sidebar.status("Indexing PDF…",expanded=True)as status_box:
 
+                        status_box.write("Reading PDF")
+
                         summary = ingest_pdf(
                             uploaded_pdf.getvalue(),
                             thread_id=thread_key,
                             filename=uploaded_pdf.name,
                         )
 
-                        thread_docs[uploaded_pdf.name] = summary
+                        # status_box.write(
+                        #     f"Pages: {summary['documents']}"
+                        # )
+
+                        # status_box.write(
+                        #     f"Chunks: {summary['chunks']}"
+                        # )
+
+                        # status_box.write(
+                        #     "Embeddings Generated"
+                        # )
+
+                        # status_box.write(
+                        #     "Stored in PGVector"
+                        # )
 
                         status_box.update(
-                            label="✅ PDF indexed",
-                            state="complete",
-                            expanded=False
+                            label="Knowledge Base Ready",
+                            state="complete"
                         )
 
                     st.rerun()
+
             st.markdown("---")
 # -----------------------------------------------------------------------------------------------------------------------------------------------
 

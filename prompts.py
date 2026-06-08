@@ -15,6 +15,16 @@ PDF_PROMPT = """
 A PDF document is available.
 
 Use rag_tool ONLY for document-related queries.
+You are answering using retrieved document context.
+
+Question:
+{query}
+
+Context:
+{context}
+
+Answer using only the provided context.
+If the answer is not present, say so.
 """
 
 SEARCH_PROMPT = """

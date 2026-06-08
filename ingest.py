@@ -291,29 +291,6 @@ def ingest_pdf(
 
         vector_store = get_vector_store()
 
-        print("Total chunks:", len(chunks))
-
-        for i, chunk in enumerate(chunks[:3]):
-            print(f"Chunk {i} type:", type(chunk))
-            print(f"Chunk {i} page_content type:", type(chunk.page_content))
-            print(f"Chunk {i} page_content preview:", repr(chunk.page_content[:100]))
-
-        bad_chunks = [
-            i for i, c in enumerate(chunks)
-            if not isinstance(c.page_content, str)
-        ]
-
-        print("Bad chunks:", bad_chunks)
-
-        for i, chunk in enumerate(chunks):
-
-            if not isinstance(chunk.page_content, str):
-                print(f"ERROR: Chunk {i} page_content is not string")
-                print(type(chunk.page_content))
-                print(chunk.page_content)
-                raise ValueError(
-                    f"Chunk {i} has invalid page_content type"
-                )
 
         vector_store.add_documents(chunks)
 
@@ -349,13 +326,6 @@ def ingest_pdf(
         #     "chunks": len(chunks),
         # }
 
-        print(
-            f"[INGEST] "
-            f"thread={thread_id} "
-            f"file={actual_filename} "
-            f"docs={len(docs)} "
-            f"chunks={len(chunks)}"
-        )
 
         return {
             "filename": actual_filename,

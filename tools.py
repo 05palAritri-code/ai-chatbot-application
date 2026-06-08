@@ -114,11 +114,7 @@ def rag_tool(query : str, thread_id : Optional[str]) -> str:
     """
 
     retriever = _get_retriever(thread_id)
-    # if not retriever:
-    #     return {
-    #         'error' : "No document  indexed for this chat , Please upload a PDF to use this tool.",
-    #         'query' : query
-    #     }
+   
 
     if not retriever:
         return {
@@ -127,8 +123,35 @@ def rag_tool(query : str, thread_id : Optional[str]) -> str:
         }
 
     result = retriever.invoke(query)
+
+    if not result:
+        return {
+            "query": query,
+            "answer": "No relevant information found in the uploaded document."
+        }
+
+    # context = "\n\n".join(
+    #     [doc.page_content for doc in result]
+    # )
+
+    # sources = []
+
+    # for doc in result:
+
+    #     sources.append({
+    #         "file": doc.metadata.get("filename"),
+    #         "page": doc.metadata.get("page", 0) + 1
+    #     })
+
+    # return {
+    #     "query": query,
+    #     "context": context,
+    #     "sources": sources
+    # }
+
     context = [doc.page_content for doc in result]
     metadata = [doc.metadata for doc in result]
+
     return {
         'query': query,
         'context': context,

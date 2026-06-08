@@ -102,9 +102,11 @@ def chat_node(state: ChatState, config=None) -> ChatState:
     return {
         "messages": [response]
     }
+
 tool_node = ToolNode(tools)
 
 graph = StateGraph(ChatState)
+
 graph.add_node('chat_node',chat_node)
 graph.add_node('tools',tool_node)
 
