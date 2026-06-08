@@ -1,6 +1,5 @@
 from db_manager import get_connection
 import streamlit as st
-from chat import workflow
 
 
 def save_thread(thread_id, username, title):
@@ -104,6 +103,8 @@ def retrive_threads(username):
             conn.close()
 
 
+from ingest import get_vector_store
+
 def delete_thread(thread_id):
 
     try:
@@ -111,7 +112,7 @@ def delete_thread(thread_id):
         conn = get_connection()
         cursor = conn.cursor()
 
-        # delete messages first
+        # ---------------- Messages ----------------
         cursor.execute(
             """
             DELETE FROM messages
@@ -120,7 +121,16 @@ def delete_thread(thread_id):
             (thread_id,)
         )
 
-        # delete thread
+        # ---------------- Document Metadata ----------------
+        cursor.execute(
+            """
+            DELETE FROM uploaded_documents
+            WHERE thread_id=%s
+            """,
+            (thread_id,)
+        )
+
+        # ---------------- Thread ----------------
         cursor.execute(
             """
             DELETE FROM threads
@@ -131,9 +141,26 @@ def delete_thread(thread_id):
 
         conn.commit()
 
+        # ---------------- Vector Store ----------------
+        vector_store = get_vector_store()
+
+        vector_store.delete(
+            filter={
+                "thread_id": str(thread_id)
+            }
+        )
+
     except Exception as e:
 
         print("DELETE THREAD ERROR:", e)
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if conn:
+            conn.close()
 
 
 def rename_thread(thread_id, new_title):

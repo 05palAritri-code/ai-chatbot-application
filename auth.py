@@ -199,6 +199,9 @@ def create_user(email, username, password):
 
 def login_user(email, password):
 
+    conn = None
+    cursor = None
+
     try:
 
         conn = get_connection()
@@ -236,8 +239,11 @@ def login_user(email, password):
 
     finally:
 
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+
+        if conn:
+            conn.close()
     
 def generate_otp():
 

@@ -30,7 +30,8 @@ def generate_title(thread_id):
         msg = messages[0]["content"]
         snap = " ".join(msg.split()[:5])
         get_thread_title(snap)
-    return snap
+        
+        return snap
 
     
 

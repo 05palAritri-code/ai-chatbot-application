@@ -3,7 +3,7 @@ from typing import  Optional
 import wikipedia
 import math
 import requests
-from ingest import _get_retriever , _THREAD_METADATA
+from ingest import _get_retriever
 import os 
 
 
@@ -133,7 +133,7 @@ def rag_tool(query : str, thread_id : Optional[str]) -> str:
         'query': query,
         'context': context,
         'metadata': metadata,
-        'source_file': _THREAD_METADATA.get(str(thread_id), {}).get('filename')
+        # 'source_file': _THREAD_METADATA.get(str(thread_id), {}).get('filename')
     }
 
     

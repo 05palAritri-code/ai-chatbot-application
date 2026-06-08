@@ -127,34 +127,81 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_postgres import PGVector
+import psycopg
 
 load_dotenv()
 
-db_url = os.getenv("DATABASE_URL")
+vector_db_url = os.getenv("VECTOR_DB_URL")
+
+db_url =os.getenv("DATABASE_URL")
 
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
-# Temporary metadata cache
-# Later move this into PostgreSQL
-_THREAD_METADATA: Dict[str, dict] = {}
+
 
 
 def get_vector_store():
     return PGVector(
         embeddings=embeddings,
         collection_name="documents",
-        connection=db_url,
+        connection=vector_db_url,
     )
 
 
-def thread_has_document(thread_id: str) -> bool:
-    return str(thread_id) in _THREAD_METADATA
+# def thread_has_document(thread_id: str) -> bool:
+#     return str(thread_id) in _THREAD_METADATA
+def thread_has_document(thread_id: str):
+
+    with psycopg.connect(db_url) as conn:
+        with conn.cursor() as cursor:
+
+            cursor.execute(
+                """
+                SELECT 1
+                FROM uploaded_documents
+                WHERE thread_id = %s
+                LIMIT 1
+                """,
+                (str(thread_id),)
+            )
+
+            return cursor.fetchone() is not None
 
 
-def thread_document_metadata(thread_id: str) -> dict:
-    return _THREAD_METADATA.get(str(thread_id), {})
+# def thread_document_metadata(thread_id: str) -> dict:
+#     return _THREAD_METADATA.get(str(thread_id), {})
+
+def thread_document_metadata(thread_id: str):
+
+    with psycopg.connect(db_url) as conn:
+        with conn.cursor() as cursor:
+
+            cursor.execute(
+                """
+                SELECT
+                    filename,
+                    page_count,
+                    chunk_count
+                FROM uploaded_documents
+                WHERE thread_id = %s
+                ORDER BY uploaded_at DESC
+                LIMIT 1
+                """,
+                (str(thread_id),)
+            )
+
+            row = cursor.fetchone()
+
+    if not row:
+        return {}
+
+    return {
+        "filename": row[0],
+        "documents": row[1],
+        "chunks": row[2],
+    }
 
 
 def _get_retriever(thread_id: Optional[str]):
@@ -244,13 +291,63 @@ def ingest_pdf(
 
         vector_store = get_vector_store()
 
+        print("Total chunks:", len(chunks))
+
+        for i, chunk in enumerate(chunks[:3]):
+            print(f"Chunk {i} type:", type(chunk))
+            print(f"Chunk {i} page_content type:", type(chunk.page_content))
+            print(f"Chunk {i} page_content preview:", repr(chunk.page_content[:100]))
+
+        bad_chunks = [
+            i for i, c in enumerate(chunks)
+            if not isinstance(c.page_content, str)
+        ]
+
+        print("Bad chunks:", bad_chunks)
+
+        for i, chunk in enumerate(chunks):
+
+            if not isinstance(chunk.page_content, str):
+                print(f"ERROR: Chunk {i} page_content is not string")
+                print(type(chunk.page_content))
+                print(chunk.page_content)
+                raise ValueError(
+                    f"Chunk {i} has invalid page_content type"
+                )
+
         vector_store.add_documents(chunks)
 
-        _THREAD_METADATA[thread_id] = {
-            "filename": actual_filename,
-            "documents": len(docs),
-            "chunks": len(chunks),
-        }
+        
+
+        with psycopg.connect(db_url) as conn:
+            with conn.cursor() as cursor:
+
+                cursor.execute(
+                    """
+                    INSERT INTO uploaded_documents
+                    (
+                        thread_id,
+                        filename,
+                        page_count,
+                        chunk_count
+                    )
+                    VALUES (%s,%s,%s,%s)
+                    """,
+                    (
+                        thread_id,
+                        actual_filename,
+                        len(docs),
+                        len(chunks)
+                    )
+                )
+
+                conn.commit()
+
+        # _THREAD_METADATA[thread_id] = {
+        #     "filename": actual_filename,
+        #     "documents": len(docs),
+        #     "chunks": len(chunks),
+        # }
 
         print(
             f"[INGEST] "

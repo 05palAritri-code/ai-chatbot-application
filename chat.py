@@ -4,13 +4,10 @@ from langchain_core.messages import AIMessage, BaseMessage,HumanMessage,SystemMe
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.graph import StateGraph,START,END
 import re
-from chatbot import _get_retriever
 from prompts import build_system_prompt
 from llm_manager import llm_with_tools
 from tools import tools
-
-
-
+from ingest import _get_retriever
 
 def clean_response(text: str) -> str:
 

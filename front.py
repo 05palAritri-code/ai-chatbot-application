@@ -6,10 +6,10 @@ from front_utils import (
 )
 from auth import (create_user, login_user , verify_otp)
 from chat import workflow
-from langchain_core.messages import AIMessage, HumanMessage,ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from streamlit_cookies_manager import EncryptedCookieManager
 import streamlit as st
-from ingest import (ingest_pdf,_THREAD_RETRIEVERS, _THREAD_METADATA)
+from ingest import ingest_pdf
 
 
 
@@ -166,6 +166,9 @@ def show_auth():
                     cookies["email"] = email
                     cookies["username"] = user["username"]
                     cookies.save()
+                    print("COOKIE SAVED:", cookies.get("logged_in"))
+                    print("COOKIE USER:", cookies.get("username"))
+
 
                     st.rerun()
                 
@@ -242,7 +245,7 @@ def show_app():
                 cookies.save()
 
                 # print("COOKIE AFTER CLEAR:", cookies.get("username"))
-
+                
                 st.rerun()
                 
 
@@ -273,11 +276,11 @@ def show_app():
                 if thread_key in st.session_state["ingested_docs"]:
                     del st.session_state["ingested_docs"][thread_key]
 
-                if thread_key in _THREAD_RETRIEVERS:
-                    del _THREAD_RETRIEVERS[thread_key]
+                # if thread_key in _THREAD_RETRIEVERS:
+                #     del _THREAD_RETRIEVERS[thread_key]
 
-                if thread_key in _THREAD_METADATA:
-                    del _THREAD_METADATA[thread_key]
+                # if thread_key in _THREAD_METADATA:
+                #     del _THREAD_METADATA[thread_key]
 
             if uploaded_pdf:
 
@@ -332,7 +335,7 @@ def show_app():
                     if len(messages) > 0:
                     # check = load_conversation(thread_id)
                     # if check and hasattr(check, "values") and 'messages' in check.values and len(check.values['messages']) > 0:
-                        snap = generate_title(thread_id)
+                        title = generate_title(thread_id)
                         # if snap and snap != "new chat":
                         #     update_thread_title(thread_id , snap)
 
@@ -342,11 +345,11 @@ def show_app():
 
                                 is_active = thread_id == st.session_state["thread_id"]
 
-                                button_label = f"->  {snap}" if is_active else snap
+                                button_label = f"->  {title}" if is_active else title
 
                                 if st.button(button_label, key=thread_id):
 
-                                # if st.button(f"{snap} ....", key=thread_id):
+                                # if st.button(f"{title} ....", key=thread_id):
 
                                     st.session_state['thread_id'] = thread_id
 

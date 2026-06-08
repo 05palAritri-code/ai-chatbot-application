@@ -1,17 +1,6 @@
-import smtplib
-import os
-from dotenv import load_dotenv
-load_dotenv()
-EMAIL = os.getenv("EMAIL_ADDRESS")
-APP_PASSWORD = os.getenv("EMAIL_APP_PASSWORD")
-print("EMAIL =", EMAIL)
-print("PASSWORD =", APP_PASSWORD)
-server = smtplib.SMTP("smtp.gmail.com", 587)
-server.starttls()
+import inspect
+from ingest import get_vector_store
 
-server.login(
-    EMAIL,
-    APP_PASSWORD
-)
+vector_store = get_vector_store()
 
-print("LOGIN SUCCESS")
+print(inspect.signature(vector_store.delete))
