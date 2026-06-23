@@ -6,7 +6,7 @@ import os
 load_dotenv()
 
 db_url = os.getenv("DATABASE_URL")
-print("database url:", db_url)
+
 def get_connection():
 
     
@@ -64,7 +64,8 @@ def initialize_database():
     filename TEXT NOT NULL,
     page_count INTEGER,
     chunk_count INTEGER,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_email TEXT
     )
     """)
 

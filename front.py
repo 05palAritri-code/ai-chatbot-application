@@ -1,5 +1,5 @@
 from back_utils import (
-    load_messages ,  rename_thread , delete_thread , retrive_threads , save_message , update_thread_title ,save_thread
+    load_messages ,  rename_thread , delete_thread , retrive_threads , save_message , uploads_last_24_hours ,save_thread , next_upload_time
 )
 from front_utils import (
     reset_chat,generate_thread_id , add_thread ,generate_title
@@ -9,8 +9,7 @@ from chat import workflow
 from langchain_core.messages import AIMessage, HumanMessage
 from streamlit_cookies_manager import EncryptedCookieManager
 import streamlit as st
-from ingest import ingest_pdf
-
+from ingest import ingest_pdf, thread_document_metadata
 
 
 cookies = EncryptedCookieManager(
@@ -26,6 +25,9 @@ if "logged_in" not in st.session_state:
 
 if "username" not in st.session_state:
     st.session_state.username = cookies.get("username")
+
+if "email" not in st.session_state:
+    st.session_state["email"] = None
 
 if cookies.get("logged_in") == "true":
     st.session_state.logged_in = True
@@ -159,8 +161,11 @@ def show_auth():
                 if user:
                     st.session_state.logged_in = True
                     st.session_state.username = user["username"]  
+                    st.session_state["email"] = user["email"]
 
-                    st.session_state['chat_threads'] = retrive_threads(st.session_state.username)
+
+                    if st.session_state['email'] not in st.session_state:
+                        st.session_state['chat_threads'] = retrive_threads(st.session_state.username)
 
                     cookies["logged_in"] = "true"
                     cookies["email"] = email
@@ -181,7 +186,6 @@ def show_app():
     #----------------------------------------------page title------------------------------------------------------
     st.title("My Chatbot")
     #--------------------------------------------------Session Setup-----------------------------------------------
-    # initialize message history in session state 
     if "message_history" not in st.session_state:
         st.session_state['message_history'] = []
 
@@ -200,20 +204,23 @@ def show_app():
         st.session_state['chat_threads'] = []
     add_thread(st.session_state["thread_id"])
 
+    
+
     thread_key = str(st.session_state["thread_id"])
     thread_docs = st.session_state["ingested_docs"].setdefault(thread_key, {})
-    threads = st.session_state["chat_threads"][::-1]
-    selected_thread = None
+    # threads = st.session_state["chat_threads"][::-1]
+    # selected_thread = None
+    
 
 # ----------------------------------------------------------- ACTIVE PDF INFO -------------------------------------------------------
 
-    if thread_docs:
+    # if thread_docs:
 
-        latest_doc = list(thread_docs.values())[-1]
+    #     latest_doc = list(thread_docs.values())[-1]
 
-        st.info(
-            f"📄 Document Attached: {latest_doc.get('filename')}"
-        )
+    #     st.info(
+    #         f"📄 Document Attached: {latest_doc.get('filename')}"
+    #     )
 
 
 
@@ -222,11 +229,13 @@ def show_app():
 
         with st.sidebar:
             st.markdown(f"### {st.session_state.username}")
+            st.write(st.session_state["email"])
 
             if st.button("Logout"):
 
                 st.session_state.logged_in = False
                 st.session_state.username = None
+                st.session_state["email"] = None
 
                 if 'chat_threads' in st.session_state:
                     del st.session_state['chat_threads']
@@ -256,17 +265,74 @@ def show_app():
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------
             st.markdown("---")
+            uploaded_pdf = st.sidebar.file_uploader("Upload a PDF for this chat",type=["pdf"])
 
-            if thread_docs:
+            if uploaded_pdf:
 
-                latest_doc = list(thread_docs.values())[-1]
+                email = st.session_state.get("email")
+
+                # if not email:
+                #     st.error("Please login again.")
+                #     st.stop()
+
+                upload_count = uploads_last_24_hours(email)
+
+                if upload_count >= 4:
+
+                    available_time = next_upload_time(email)
+
+                    st.error(
+                        f"""
+                        Upload limit reached (4 PDFs / 24 hours)
+
+                        Next upload available:
+                        {available_time.strftime('%d %b %Y, %I:%M %p')}
+                        """
+                    )
+
+                    st.stop()
+
+                if uploaded_pdf.name not in thread_docs:
+
+                    with st.sidebar.status(
+                        "Indexing PDF...",
+                        expanded=True
+                    ) as status_box:
+                        
+                        try:
+                            print("THREAD KEY:", thread_key)
+                            print("SESSION THREAD:", st.session_state["thread_id"])
+                            summary = ingest_pdf(
+                                uploaded_pdf.getvalue(),
+                                thread_id=thread_key,
+                                filename=uploaded_pdf.name,
+                            )
+
+                            thread_docs[uploaded_pdf.name] = summary
+                        
+                            status_box.update(
+                                label="PDF Indexed Successfully",
+                                state="complete",
+                                expanded=False
+                            )
+                        except ValueError as e:
+                            st.error(f"Failed to process PDF: {e}")
+                            st.stop
+                        except Exception:
+                            st.error(
+                                "Something went wrong while processing the PDF."
+                            )
+                            st.stop()
+
+
+            latest_doc = thread_document_metadata(thread_key)
+
+            if latest_doc:
 
                 st.success(
                     f"""
                     Knowledge Base Active
-
                     File: {latest_doc.get('filename')}
-
                     Pages: {latest_doc.get('documents')}
 
                     Chunks: {latest_doc.get('chunks')}
@@ -281,7 +347,8 @@ def show_app():
                     "No Knowledge Base Attached"
                 )
 
-            uploaded_pdf = st.sidebar.file_uploader("Upload a PDF for this chat",type=["pdf"])
+            
+
 
             # if uploaded_pdf is None: 
             #     if thread_key in st.session_state["ingested_docs"]: 
@@ -294,58 +361,62 @@ def show_app():
                     # del _THREAD_METADATA[thread_key]
 
             
+            
 
-            if uploaded_pdf:
+            # if uploaded_pdf:
+            #     email = st.session_state["email"]
 
-                # SAVE THREAD FIRST
-                if st.session_state['thread_id'] not in st.session_state['chat_threads']:
+                
 
-                    # save_thread(st.session_state['thread_id'],st.session_state.username,generate_title(st.session_state['thread_id']))
+            #     # SAVE THREAD FIRST
+            #     if st.session_state['thread_id'] not in st.session_state['chat_threads']:
 
-                    st.session_state['chat_threads'].append(
-                        st.session_state['thread_id']
-                    )
+            #         # save_thread(st.session_state['thread_id'],st.session_state.username,generate_title(st.session_state['thread_id']))
 
-                if uploaded_pdf.name in thread_docs:
+            #         st.session_state['chat_threads'].append(
+            #             st.session_state['thread_id']
+            #         )
 
-                    st.sidebar.info(
-                        f"`{uploaded_pdf.name}` already processed for this chat."
-                    )
+            #     if uploaded_pdf.name in thread_docs:
 
-                else:
+            #         st.sidebar.info(
+            #             f"`{uploaded_pdf.name}` already processed for this chat."
+            #         )
 
-                    with st.sidebar.status("Indexing PDF…",expanded=True)as status_box:
+            #     else:
+            #         with st.sidebar.status("Indexing PDF…",expanded=True)as status_box:
+            #             upload_count = uploads_last_24_hours(email)
+            #             if upload_count >= 4:
 
-                        status_box.write("Reading PDF")
+            #                 available_time = next_upload_time(email)
 
-                        summary = ingest_pdf(
-                            uploaded_pdf.getvalue(),
-                            thread_id=thread_key,
-                            filename=uploaded_pdf.name,
-                        )
+            #                 st.error(
+            #                     f"""
+            #                         Upload limit reached (4 PDFs / 24 hours).
 
-                        # status_box.write(
-                        #     f"Pages: {summary['documents']}"
-                        # )
+            #                         Next upload available:
+            #                         {available_time.strftime('%d %b %Y, %I:%M %p')}
+            #                         """
+            #                     )
 
-                        # status_box.write(
-                        #     f"Chunks: {summary['chunks']}"
-                        # )
+            #                 st.stop()
 
-                        # status_box.write(
-                        #     "Embeddings Generated"
-                        # )
+            #             summary = ingest_pdf(
+            #                 uploaded_pdf.getvalue(),
+            #                 thread_id=thread_key,
+            #                 filename=uploaded_pdf.name,
+            #             )
 
-                        # status_box.write(
-                        #     "Stored in PGVector"
-                        # )
+            #             thread_docs[uploaded_pdf.name] = summary
 
-                        status_box.update(
-                            label="Knowledge Base Ready",
-                            state="complete"
-                        )
+            #             status_box.update(
+            #                 label="PDF indexed",
+            #                 state="complete",
+            #                 expanded=False
+            #             )
 
-                    st.rerun()
+                    # st.rerun()
+
 
             st.markdown("---")
 # -----------------------------------------------------------------------------------------------------------------------------------------------
@@ -461,7 +532,14 @@ def show_app():
             st.text(message['content'])
 
     # taking user input from the chat input box and processing it. When the user types a message and submits it
-    chat_box=st.chat_input('Type Here')
+    chat_box=st.chat_input('Ask anything')
+
+    if "study_prompt" in st.session_state:
+
+        chat_box = st.session_state["study_prompt"]
+
+        del st.session_state["study_prompt"]
+    
 
     if chat_box:
         if st.session_state['thread_id'] not in st.session_state['chat_threads']:

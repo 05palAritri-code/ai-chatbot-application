@@ -117,10 +117,10 @@
 #         except OSError:
 #             pass
 
-from typing import Optional, Dict
+from typing import Optional
 import os
 import tempfile
-
+import streamlit as st
 from dotenv import load_dotenv
 
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -138,9 +138,6 @@ db_url =os.getenv("DATABASE_URL")
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
-
-
-
 
 def get_vector_store():
     return PGVector(
@@ -206,10 +203,25 @@ def thread_document_metadata(thread_id: str):
 
 def _get_retriever(thread_id: Optional[str]):
 
+    print("RETRIEVER THREAD:", thread_id)
+
     if not thread_id:
         return None
+    
+    print("FILTER THREAD:", thread_id)
 
     vector_store = get_vector_store()
+
+    test_docs = vector_store.similarity_search(
+        "summary",
+        k=3,
+        filter={
+            "thread_id": str(thread_id)
+        }
+    )
+
+    print("MATCHING DOCS FOUND:", len(test_docs))
+    
 
     return vector_store.as_retriever(
         search_type="mmr",
@@ -223,16 +235,23 @@ def _get_retriever(thread_id: Optional[str]):
     )
 
 
-def ingest_pdf(
-    file_bytes: bytes,
-    thread_id: str,
-    filename: Optional[str] = None,
-) -> dict:
+def ingest_pdf(file_bytes: bytes, thread_id: str, filename: Optional[str] = None) -> dict:
+
+    '''Build a retirever for the uploaded pdf and store it for the thread.
+    returns a summary dict that can be surfaced in the UI
+    Ingest a PDF file, split it into chunks, create embeddings, and store in vector store'''
+    
+    print("INGEST FUNCTION ENTERED")
+
+    print("INGEST THREAD:", thread_id)
+    
+
 
     if not file_bytes:
         raise ValueError("No bytes received for ingestion.")
 
     thread_id = str(thread_id)
+
 
     with tempfile.NamedTemporaryFile(
         delete=False,
@@ -246,6 +265,7 @@ def ingest_pdf(
 
         loader = PyPDFLoader(temp_path)
         docs = loader.load()
+
 
         if not docs:
             raise ValueError(
@@ -268,12 +288,14 @@ def ingest_pdf(
 
         if not chunks:
             raise ValueError(
-                "No chunks were generated from PDF."
+                "Unable to extract content from this PDF."
             )
 
         actual_filename = (
             filename or os.path.basename(temp_path)
         )
+
+        vector_store = get_vector_store()
 
         for chunk in chunks:
 
@@ -289,31 +311,50 @@ def ingest_pdf(
                 }
             )
 
-        vector_store = get_vector_store()
-
-
         vector_store.add_documents(chunks)
 
+        print(chunks[0].metadata)
+
+        # docs = vector_store.similarity_search(
+        #     "project",
+        #     k=3
+        # )
+
+        # print("FOUND:", len(docs))
+
+        # for d in docs:
+        #     print(d.metadata)
         
 
+
+
         with psycopg.connect(db_url) as conn:
+            
             with conn.cursor() as cursor:
 
+                page_count = len(
+                                set(
+                                    chunk.metadata.get("page", 0)
+                                    for chunk in chunks
+                                )
+                            )
                 cursor.execute(
                     """
                     INSERT INTO uploaded_documents
                     (
                         thread_id,
+                        user_email,
                         filename,
                         page_count,
                         chunk_count
                     )
-                    VALUES (%s,%s,%s,%s)
+                    VALUES (%s,%s,%s,%s,%s)
                     """,
                     (
                         thread_id,
+                        st.session_state['email'],
                         actual_filename,
-                        len(docs),
+                        page_count,
                         len(chunks)
                     )
                 )
@@ -329,7 +370,7 @@ def ingest_pdf(
 
         return {
             "filename": actual_filename,
-            "documents": len(docs),
+            "documents": page_count,
             "chunks": len(chunks),
         }
 

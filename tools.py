@@ -3,9 +3,9 @@ from typing import  Optional
 import wikipedia
 import math
 import requests
-from ingest import _get_retriever
 import os 
-
+from ingest import _get_retriever
+from langchain_core.runnables import RunnableConfig
 
 @tool
 def search(query: str) -> str:
@@ -102,19 +102,33 @@ def get_stock_price(symbol : str) -> dict:
     response = requests.get(url)
     return response.json()
 
+
+
 @tool
 def rag_tool(query : str, thread_id : Optional[str]) -> str:
+# def rag_tool(query: str, config: RunnableConfig):
     """Use this tool to answer questions based on the content of an uploaded PDF document.
-    always include the thread_id when invoking this tool to ensure the correct document retriever is used.
+    The system automatically selects the correct document collection for the active chat session.
+    Only provide the user's query..
 
     Guidelines:
     - Use this tool when the user asks about information that may be contained in their uploaded PDF.
-    - The query will be passed along with the thread_id to retrieve relevant information from the PDF.
-    - If no retriever is found for the thread_id, return a message indicating that no document is available.
+    - If no retriever is found return a message indicating that no document is available.
+
     """
 
-    retriever = _get_retriever(thread_id)
-   
+    thread_id = (
+        config.get("configurable", {})
+        .get("thread_id")
+    )
+
+    print("RAG TOOL THREAD:", thread_id)
+
+    retriever = _get_retriever(thread_id)   
+
+    print("RAG TOOL CALLED")
+    print("QUERY:", query)
+    print("Rag Tool THREAD:", thread_id)
 
     if not retriever:
         return {
@@ -124,40 +138,48 @@ def rag_tool(query : str, thread_id : Optional[str]) -> str:
 
     result = retriever.invoke(query)
 
+
     if not result:
         return {
             "query": query,
             "answer": "No relevant information found in the uploaded document."
         }
 
-    # context = "\n\n".join(
-    #     [doc.page_content for doc in result]
-    # )
 
-    # sources = []
-
-    # for doc in result:
-
-    #     sources.append({
-    #         "file": doc.metadata.get("filename"),
-    #         "page": doc.metadata.get("page", 0) + 1
-    #     })
+    # context = [doc.page_content for doc in result]
+    # metadata = [doc.metadata for doc in result]
 
     # return {
-    #     "query": query,
-    #     "context": context,
-    #     "sources": sources
+    #     'query': query,
+    #     'context': context,
+    #     'metadata': metadata,
+    #     # 'source_file': _THREAD_METADATA.get(str(thread_id), {}).get('filename')
     # }
+    context = "\n\n".join(
+    [doc.page_content for doc in result]
+        )
 
-    context = [doc.page_content for doc in result]
-    metadata = [doc.metadata for doc in result]
+    sources = [
+            {
+                "file": doc.metadata.get("filename"),
+                "page": doc.metadata.get("page", 0) + 1
+            }
+            for doc in result
+        ]
 
     return {
-        'query': query,
-        'context': context,
-        'metadata': metadata,
-        # 'source_file': _THREAD_METADATA.get(str(thread_id), {}).get('filename')
-    }
+            "query": query,
+            "context": context,
+            "sources": sources
+        }
+    # return {
+    #         "document_context": context,
+    #         "sources": metadata,
+    #         "document_name": metadata[0].get("filename")
+    #     }
 
     
 tools = [search ,  calculator  , rag_tool , wiki_search]
+
+print(rag_tool.args)
+print(rag_tool)

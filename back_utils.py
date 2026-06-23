@@ -1,5 +1,51 @@
 from db_manager import get_connection
 import streamlit as st
+from datetime import timedelta
+from dotenv import load_dotenv
+import psycopg
+import os
+load_dotenv()
+
+db_url = os.getenv("DATABASE_URL")
+
+def next_upload_time(email):
+
+    with psycopg.connect(db_url) as conn:
+        with conn.cursor() as cursor:
+
+            cursor.execute(
+                """
+                SELECT MIN(uploaded_at)
+                FROM uploaded_documents
+                WHERE user_email = %s
+                AND uploaded_at >= NOW() - INTERVAL '24 hours'
+                """,
+                (email,)
+            )
+
+            row = cursor.fetchone()
+
+    if not row or not row[0]:
+        return None
+
+    return row[0] + timedelta(hours=24)
+
+def uploads_last_24_hours(email):
+
+    with psycopg.connect(db_url) as conn:
+        with conn.cursor() as cursor:
+
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM uploaded_documents
+                WHERE user_email = %s
+                AND uploaded_at >= NOW() - INTERVAL '24 hours'
+                """,
+                (email,)
+            )
+
+            return cursor.fetchone()[0]
 
 
 def save_thread(thread_id, username, title):
@@ -103,7 +149,6 @@ def retrive_threads(username):
             conn.close()
 
 
-from ingest import get_vector_store
 
 def delete_thread(thread_id):
 
@@ -142,13 +187,18 @@ def delete_thread(thread_id):
         conn.commit()
 
         # ---------------- Vector Store ----------------
-        vector_store = get_vector_store()
+        with psycopg.connect(db_url) as conn:
+            with conn.cursor() as cursor:
 
-        vector_store.delete(
-            filter={
-                "thread_id": str(thread_id)
-            }
-        )
+                cursor.execute(
+                    """
+                    DELETE FROM langchain_pg_embedding
+                    WHERE cmetadata->>'thread_id' = %s
+                    """,
+                    (str(thread_id),)
+                )
+
+                conn.commit()
 
     except Exception as e:
 

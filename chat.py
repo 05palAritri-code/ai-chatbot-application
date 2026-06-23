@@ -64,10 +64,12 @@ class ChatState(TypedDict):
 
 def chat_node(state: ChatState, config=None) -> ChatState:
 
-    thread_id = None
 
     if config and isinstance(config, dict):
         thread_id = config.get("configurable", {}).get("thread_id")
+
+    print("CHAT NODE THREAD:", thread_id)
+
 
     retriever = _get_retriever(thread_id)
     has_pdf = retriever is not None
@@ -89,12 +91,18 @@ def chat_node(state: ChatState, config=None) -> ChatState:
 
     if not any(isinstance(m, SystemMessage) for m in messages):
         messages = [system_message] + messages
+    
+    print("CONFIG:", config)
+    print("=" * 80)
+    print(system_prompt)
+    print("=" * 80)
 
     response = llm_with_tools.invoke(
             messages,
             config=config
     )
-    
+    print("TOOL CALLS:", response.tool_calls)
+    print("RESPONSE CONTENT:", response.content)    
 
     if isinstance(response.content, str):
         response.content = clean_response(response.content)
