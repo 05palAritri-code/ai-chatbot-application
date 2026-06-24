@@ -125,6 +125,8 @@ from dotenv import load_dotenv
 
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
+import fitz  
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_postgres import PGVector
 import psycopg
@@ -170,7 +172,7 @@ def thread_has_document(thread_id: str):
 # def thread_document_metadata(thread_id: str) -> dict:
 #     return _THREAD_METADATA.get(str(thread_id), {})
 
-def thread_document_metadata(thread_id: str):
+def thread_document_metadata(thread_id: str , user_email : str):
 
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cursor:
@@ -182,11 +184,11 @@ def thread_document_metadata(thread_id: str):
                     page_count,
                     chunk_count
                 FROM uploaded_documents
-                WHERE thread_id = %s
+                WHERE thread_id = %s AND user_email = %s
                 ORDER BY uploaded_at DESC
                 LIMIT 1
                 """,
-                (str(thread_id),)
+                (str(thread_id),user_email)
             )
 
             row = cursor.fetchone()
@@ -239,19 +241,29 @@ def ingest_pdf(file_bytes: bytes, thread_id: str, filename: Optional[str] = None
     thread_id = str(thread_id)
 
 
-    with tempfile.NamedTemporaryFile(
-        delete=False,
-        suffix=".pdf"
-    ) as temp_file:
+    # with tempfile.NamedTemporaryFile(
+    #     delete=False,
+    #     suffix=".pdf"
+    # ) as temp_file:
 
-        temp_file.write(file_bytes)
-        temp_path = temp_file.name
+    #     temp_file.write(file_bytes)
+    #     temp_path = temp_file.name
 
     try:
 
-        loader = PyPDFLoader(temp_path)
-        docs = loader.load()
-
+        # loader = PyPDFLoader(temp_path)
+        # docs = loader.load()
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        docs = []
+        for page_num, page in enumerate(doc):
+            text = page.get_text()
+            images = page.get_images()
+            if images:
+                text += f"\n[This page contains {len(images)} image(s)/figure(s)]"
+            docs.append(Document(
+                page_content=text,
+                metadata={"page": page_num}
+            ))
 
         if not docs:
             raise ValueError(
@@ -339,7 +351,4 @@ def ingest_pdf(file_bytes: bytes, thread_id: str, filename: Optional[str] = None
         }
 
     finally:
-        try:
-            os.remove(temp_path)
-        except OSError:
-            pass
+        doc.close()

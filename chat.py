@@ -27,6 +27,16 @@ def clean_response(text: str) -> str:
 def classify_query(query):
 
     query = query.lower()
+    if any(word in query for word in [
+    "quiz", "qna", "test me", "ask me", "flashcard",
+    "question", "mcq", "multiple choice", "practice",
+    "drill", "examine", "interview", "revision",
+    "notes", "summarize", "explain", "analyze",
+    "highlight", "topics", "what is in", "document",
+    "pdf", "uploaded", "this file"
+    ]):
+        return "pdf"
+
     if any(word in query for word in ["stock", "share price", "price of"]):
         return "stock"
 
@@ -50,11 +60,6 @@ def classify_query(query):
     ]):
         return "calculator"
 
-    if any(word in query for word in [
-        "stock",
-        "share price"
-    ]):
-        return "stock"
 
     return "chat"
 
@@ -84,11 +89,9 @@ def chat_node(state: ChatState, config=None) -> ChatState:
         has_pdf=has_pdf,
         query_type=query_type
     )
-
     system_message = SystemMessage(content=system_prompt)
 
-
-    messages = state["messages"]
+    messages = [system_message] + state["messages"][-6:]
 
     if not any(isinstance(m, SystemMessage) for m in messages):
         messages = [system_message] + messages

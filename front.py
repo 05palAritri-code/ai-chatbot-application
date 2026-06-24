@@ -1,5 +1,5 @@
 from back_utils import (
-    load_messages ,  rename_thread , delete_thread , retrive_threads , save_message , uploads_last_24_hours ,save_thread , next_upload_time
+    load_messages ,  rename_thread , delete_thread , retrive_threads , save_message , uploads_last_24_hours ,save_thread , next_upload_time , get_thread_title
 )
 from front_utils import (
     reset_chat,generate_thread_id , add_thread ,generate_title
@@ -10,6 +10,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from streamlit_cookies_manager import EncryptedCookieManager
 import streamlit as st
 from ingest import ingest_pdf, thread_document_metadata
+import signal
 
 
 cookies = EncryptedCookieManager(
@@ -268,6 +269,8 @@ def show_app():
             uploaded_pdf = st.sidebar.file_uploader("Upload a PDF for this chat",type=["pdf"])
 
             if uploaded_pdf:
+                id = generate_thread_id()
+                generate_title(id)
 
                 email = st.session_state.get("email")
 
@@ -277,7 +280,7 @@ def show_app():
 
                 upload_count = uploads_last_24_hours(email)
 
-                if upload_count >= 4:
+                if upload_count >= 5:
 
                     available_time = next_upload_time(email)
 
@@ -318,14 +321,14 @@ def show_app():
                         except ValueError as e:
                             st.error(f"Failed to process PDF: {e}")
                             st.stop
-                        except Exception:
+                        except Exception as e:
                             st.error(
-                                "Something went wrong while processing the PDF."
+                                f"Something went wrong while processing the PDF.{e}"
                             )
                             st.stop()
 
 
-            latest_doc = thread_document_metadata(thread_key)
+            latest_doc = thread_document_metadata(thread_key,st.session_state["email"])
 
             if latest_doc:
 
@@ -429,101 +432,93 @@ def show_app():
             for thread_id in st.session_state['chat_threads']:
                 # [::-1]:
                 
-                    col1, col2 = st.columns([4, 1])
-                    messages = load_messages(thread_id)
+                col1, col2 = st.columns([4, 1])
+                messages = load_messages(thread_id)
+                if len(messages) == 0:
+                    continue
+                existing = get_thread_title(thread_id)  
+        
+                if existing:
+                    title = existing 
+                else:
+                    title = generate_title(thread_id)
+                    save_thread(thread_id, st.session_state.username, title)
 
-                    if len(messages) > 0:
-                    # check = load_conversation(thread_id)
-                    # if check and hasattr(check, "values") and 'messages' in check.values and len(check.values['messages']) > 0:
-                        title = generate_title(thread_id)
-                        # save_thread(thread_id,st.session_state.username,title)
-                        # if snap and snap != "new chat":
-                        #     update_thread_title(thread_id , snap)
 
-                        with st.sidebar.container():
+                with st.sidebar.container():
                         
-                            with col1:
+                    with col1:
 
-                                is_active = thread_id == st.session_state["thread_id"]
+                        is_active = thread_id == st.session_state["thread_id"]
 
-                                button_label = f"->  {title}" if is_active else title
+                        button_label = f"->  {title}" if is_active else title
 
-                                if st.button(button_label, key=thread_id):
+                        if st.button(button_label, key=thread_id):
 
-                                # if st.button(f"{title} ....", key=thread_id):
+                            st.session_state['thread_id'] = thread_id
 
-                                    st.session_state['thread_id'] = thread_id
+                            old_chat = load_messages(thread_id)
 
-                                    old_chat = load_messages(thread_id)
+                            temp_message = []
 
-                                    temp_message = []
+                            for msg in old_chat:
 
-                                    for msg in old_chat:
+                                role = msg["role"]
+                                content = msg["content"]
 
-                                        role = msg["role"]
-                                        content = msg["content"]
+                                if not content:
+                                    continue
 
-                                            # skip empty content
-                                        if not content:
-                                            continue
+                                if(isinstance(content, str)and content.startswith("{")and "context" in content):
+                                    continue
+                                    temp_message.append({
+                                        "role": role,
+                                        "content": content
+                                    })
 
-                                            # skip raw rag json outputs
-                                        if(
-                                            isinstance(content, str)
-                                            and content.startswith("{")
-                                            and "context" in content
-                                        ):
-                                            continue
+                                st.session_state['message_history'] = temp_message
 
-                                        temp_message.append({
-                                            "role": role,
-                                            "content": content
-                                        })
+                                st.rerun()
 
-                                    st.session_state['message_history'] = temp_message
+                        with col2:
+
+                            with st.popover(""):
+
+                                    # ---------------- DELETE ----------------
+                                if st.button("Delete", key=f"del_{thread_id}"):
+
+                                    delete_thread(thread_id)
+
+                                    if thread_id in st.session_state['chat_threads']:
+                                        st.session_state['chat_threads'].remove(thread_id)
+
+                                        # if current chat deleted
+                                    if st.session_state.get("thread_id") == thread_id:
+
+                                        st.session_state['thread_id'] = generate_thread_id()
+                                        st.session_state['message_history'] = []
 
                                     st.rerun()
 
-                            with col2:
-
-                                with st.popover(""):
-
-                                    # ---------------- DELETE ----------------
-                                    if st.button("Delete", key=f"del_{thread_id}"):
-
-                                        delete_thread(thread_id)
-
-                                        if thread_id in st.session_state['chat_threads']:
-                                            st.session_state['chat_threads'].remove(thread_id)
-
-                                        # if current chat deleted
-                                        if st.session_state.get("thread_id") == thread_id:
-
-                                            st.session_state['thread_id'] = generate_thread_id()
-                                            st.session_state['message_history'] = []
-
-                                        st.rerun()
-
                                     # ---------------- RENAME OPEN ----------------
-                                    if st.button("Rename", key=f"rename_btn_{thread_id}"):
+                                if st.button("Rename", key=f"rename_btn_{thread_id}"):
 
-                                        st.session_state["rename_thread"] = thread_id
+                                    st.session_state["rename_thread"] = thread_id
 
                                     # ---------------- RENAME INPUT ----------------
-                                    if st.session_state.get("rename_thread") == thread_id:
+                                if st.session_state.get("rename_thread") == thread_id:
 
-                                        new_name = st.text_input(
-                                            "New Chat Name",
-                                            key=f"rename_input_{thread_id}"
-                                        )
+                                    new_name = st.text_input(
+                                        "New Chat Name",
+                                        key=f"rename_input_{thread_id}"
+                                    )
 
-                                        if st.button("Save", key=f"save_{thread_id}"):
+                                    if st.button("Save", key=f"save_{thread_id}"):
 
-                                            rename_thread(thread_id, new_name)
+                                        rename_thread(thread_id, new_name)
+                                        del st.session_state["rename_thread"]
 
-                                            del st.session_state["rename_thread"]
-
-                                            st.rerun()
+                                        st.rerun()
 
     #---------------------------------------------Main UI-------------------------------------------------
 
@@ -555,6 +550,8 @@ def show_app():
             st.text(chat_box)
 
         # CONFIG =({'configurable' : {'thread_id' : st.session_state['thread_id']}})
+        # if not st.session_state.get('thread_id'):
+        #     st.session_state['thread_id'] = generate_thread_id()
         CONFIG = {
             'configurable' : {'thread_id' : st.session_state['thread_id'],'user': st.session_state.username},
             'metadata' : {
@@ -571,26 +568,32 @@ def show_app():
 
             def stream_response():
                 started = False
-                for message_chunk, metadata in workflow.stream(
-                    {"messages": [HumanMessage(content=chat_box)]},
-                    config=CONFIG,
-                    stream_mode="messages"
-                ):
-                    if isinstance(message_chunk, AIMessage):
-                        content = message_chunk.content
+                try:
+                    for message_chunk, metadata in workflow.stream(
+                        {"messages": [HumanMessage(content=chat_box)]},
+                        config=CONFIG,
+                        stream_mode="messages",
+                        stream_config={"timeout": 30}  
 
-                        # skip anything that looks like tool/system output
-                        if not content:
-                            continue
+                    ):
+                        if isinstance(message_chunk, AIMessage):
+                            content = message_chunk.content
 
-                        if "<function=" in content or "{" in content and "query" in content:
-                            continue
+                            # skip anything that looks like tool/system output
+                            if not content:
+                                continue
 
-                        if not started:
-                            thinking_placeholder.empty()
-                            started = True
+                            if "<function=" in content or "{" in content and "query" in content:
+                                continue
 
-                        yield content
+                            if not started:
+                                thinking_placeholder.empty()
+                                started = True
+
+                            yield content
+                except Exception:
+                    thinking_placeholder.empty()
+                    yield "I'm having trouble processing that request. Please rephrase or try again"
 
                 thinking_placeholder.empty()
                         

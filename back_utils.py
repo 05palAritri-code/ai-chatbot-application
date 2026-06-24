@@ -8,6 +8,20 @@ load_dotenv()
 
 db_url = os.getenv("DATABASE_URL")
 
+def get_thread_title(thread_id):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT title FROM threads WHERE thread_id = %s",
+            (thread_id,)
+        )
+        row = cursor.fetchone()
+        return row[0] if row and row[0] else None
+    except Exception as e:
+        print("GET TITLE ERROR:", e)
+        return None
+    
 def next_upload_time(email):
 
     with psycopg.connect(db_url) as conn:

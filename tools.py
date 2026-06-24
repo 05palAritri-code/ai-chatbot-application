@@ -104,6 +104,8 @@ def rag_tool(query: str, config: RunnableConfig) -> str:
     """
 
     thread_id = config.get("configurable", {}).get("thread_id")
+    
+    print("FULL CONFIG:", config) 
 
     print("RAG TOOL THREAD:", thread_id)
 
