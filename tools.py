@@ -9,22 +9,12 @@ from langchain_core.runnables import RunnableConfig
 
 @tool
 def search(query: str) -> str:
-    """Search the internet for real-time or recent latest information.
-
-        Use this tool when the user asks about:
-        - Latest news (global or location-specific, e.g., Kolkata, Mumbai, Delhi, Chennai)
-        - Sports updates (cricket, football, matches, scores, tournaments)
-        - Entertainment news (Bollywood, Hollywood, Tollywood, etc.)
-        - Current events or trending topics in any country
-        - Weather updates for any location
-
-        Guidelines:
-        - Use this tool for queries containing words like: "latest", "today", "current", "news", "update"
-        - Prefer this tool for anything time-sensitive or recently changing
-        - Do NOT use this tool for general knowledge or historical facts
-        - Always pass a clear and specific search query
-        """
-     
+   
+    """ Search the internet for real-time or recent information including
+    news, current events, weather, sports, and general topics.
+    
+    """
+   
     try:
         result = DuckDuckGoSearchRun().run(query)
 
@@ -105,30 +95,21 @@ def get_stock_price(symbol : str) -> dict:
 
 
 @tool
-def rag_tool(query : str, thread_id : Optional[str]) -> str:
-# def rag_tool(query: str, config: RunnableConfig):
-    """Use this tool to answer questions based on the content of an uploaded PDF document.
-    The system automatically selects the correct document collection for the active chat session.
-    Only provide the user's query..
+# def rag_tool(query : str, thread_id : Optional[str]) -> str:
+def rag_tool(query: str, config: RunnableConfig) -> str:
 
-    Guidelines:
-    - Use this tool when the user asks about information that may be contained in their uploaded PDF.
-    - If no retriever is found return a message indicating that no document is available.
+    """Use this tool to answer questions based on the content of an uploaded PDF document.
+        If no retriever is found return a message indicating that no document is available.
 
     """
 
-    thread_id = (
-        config.get("configurable", {})
-        .get("thread_id")
-    )
+    thread_id = config.get("configurable", {}).get("thread_id")
 
     print("RAG TOOL THREAD:", thread_id)
 
     retriever = _get_retriever(thread_id)   
 
     print("RAG TOOL CALLED")
-    print("QUERY:", query)
-    print("Rag Tool THREAD:", thread_id)
 
     if not retriever:
         return {
@@ -138,7 +119,6 @@ def rag_tool(query : str, thread_id : Optional[str]) -> str:
 
     result = retriever.invoke(query)
 
-
     if not result:
         return {
             "query": query,
@@ -146,18 +126,7 @@ def rag_tool(query : str, thread_id : Optional[str]) -> str:
         }
 
 
-    # context = [doc.page_content for doc in result]
-    # metadata = [doc.metadata for doc in result]
-
-    # return {
-    #     'query': query,
-    #     'context': context,
-    #     'metadata': metadata,
-    #     # 'source_file': _THREAD_METADATA.get(str(thread_id), {}).get('filename')
-    # }
-    context = "\n\n".join(
-    [doc.page_content for doc in result]
-        )
+    context = "\n\n".join([doc.page_content for doc in result])
 
     sources = [
             {
@@ -179,7 +148,4 @@ def rag_tool(query : str, thread_id : Optional[str]) -> str:
     #     }
 
     
-tools = [search ,  calculator  , rag_tool , wiki_search]
-
-print(rag_tool.args)
-print(rag_tool)
+tools = [search ,  calculator  , rag_tool , wiki_search , get_stock_price]

@@ -436,6 +436,7 @@ def show_app():
                     # check = load_conversation(thread_id)
                     # if check and hasattr(check, "values") and 'messages' in check.values and len(check.values['messages']) > 0:
                         title = generate_title(thread_id)
+                        # save_thread(thread_id,st.session_state.username,title)
                         # if snap and snap != "new chat":
                         #     update_thread_title(thread_id , snap)
 
@@ -542,18 +543,15 @@ def show_app():
     
 
     if chat_box:
+        # when the user submits a message, we append it to the message history in the session state and display it in the chat interface. 
+        st.session_state['message_history'].append({'role': 'user' , 'content' : chat_box})
+        save_message(st.session_state['thread_id'],'user',chat_box)
+        
         if st.session_state['thread_id'] not in st.session_state['chat_threads']:
             save_thread(st.session_state['thread_id'],st.session_state.username,generate_title(st.session_state['thread_id']))
             st.session_state['chat_threads'].append(st.session_state['thread_id'])
 
-        # when the user submits a message, we append it to the message history in the session state and display it in the chat interface. 
-        st.session_state['message_history'].append({'role': 'user' , 'content' : chat_box})
-        save_message(
-            st.session_state['thread_id'],
-            'user',
-            chat_box
-)
-        with st.chat_message('user'):
+        with st.chat_message('user'): 
             st.text(chat_box)
 
         # CONFIG =({'configurable' : {'thread_id' : st.session_state['thread_id']}})

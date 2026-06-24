@@ -208,20 +208,7 @@ def _get_retriever(thread_id: Optional[str]):
     if not thread_id:
         return None
     
-    print("FILTER THREAD:", thread_id)
-
     vector_store = get_vector_store()
-
-    test_docs = vector_store.similarity_search(
-        "summary",
-        k=3,
-        filter={
-            "thread_id": str(thread_id)
-        }
-    )
-
-    print("MATCHING DOCS FOUND:", len(test_docs))
-    
 
     return vector_store.as_retriever(
         search_type="mmr",
@@ -241,9 +228,8 @@ def ingest_pdf(file_bytes: bytes, thread_id: str, filename: Optional[str] = None
     returns a summary dict that can be surfaced in the UI
     Ingest a PDF file, split it into chunks, create embeddings, and store in vector store'''
     
-    print("INGEST FUNCTION ENTERED")
 
-    print("INGEST THREAD:", thread_id)
+    # print("INGEST THREAD:", thread_id)
     
 
 
@@ -313,21 +299,6 @@ def ingest_pdf(file_bytes: bytes, thread_id: str, filename: Optional[str] = None
 
         vector_store.add_documents(chunks)
 
-        print(chunks[0].metadata)
-
-        # docs = vector_store.similarity_search(
-        #     "project",
-        #     k=3
-        # )
-
-        # print("FOUND:", len(docs))
-
-        # for d in docs:
-        #     print(d.metadata)
-        
-
-
-
         with psycopg.connect(db_url) as conn:
             
             with conn.cursor() as cursor:
@@ -360,13 +331,6 @@ def ingest_pdf(file_bytes: bytes, thread_id: str, filename: Optional[str] = None
                 )
 
                 conn.commit()
-
-        # _THREAD_METADATA[thread_id] = {
-        #     "filename": actual_filename,
-        #     "documents": len(docs),
-        #     "chunks": len(chunks),
-        # }
-
 
         return {
             "filename": actual_filename,

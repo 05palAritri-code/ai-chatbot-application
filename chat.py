@@ -27,6 +27,8 @@ def clean_response(text: str) -> str:
 def classify_query(query):
 
     query = query.lower()
+    if any(word in query for word in ["stock", "share price", "price of"]):
+        return "stock"
 
     if any(word in query for word in [
         "latest",
@@ -68,7 +70,7 @@ def chat_node(state: ChatState, config=None) -> ChatState:
     if config and isinstance(config, dict):
         thread_id = config.get("configurable", {}).get("thread_id")
 
-    print("CHAT NODE THREAD:", thread_id)
+    # print("CHAT NODE THREAD:", thread_id)
 
 
     retriever = _get_retriever(thread_id)
@@ -85,24 +87,19 @@ def chat_node(state: ChatState, config=None) -> ChatState:
 
     system_message = SystemMessage(content=system_prompt)
 
-    # messages = [system_message, *state["messages"]]
 
     messages = state["messages"]
 
     if not any(isinstance(m, SystemMessage) for m in messages):
         messages = [system_message] + messages
     
-    print("CONFIG:", config)
-    print("=" * 80)
-    print(system_prompt)
-    print("=" * 80)
+
 
     response = llm_with_tools.invoke(
             messages,
             config=config
     )
-    print("TOOL CALLS:", response.tool_calls)
-    print("RESPONSE CONTENT:", response.content)    
+
 
     if isinstance(response.content, str):
         response.content = clean_response(response.content)
