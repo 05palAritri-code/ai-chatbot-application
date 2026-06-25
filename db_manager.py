@@ -5,12 +5,11 @@ import os
 
 load_dotenv()
 
-db_url = os.getenv("DATABASE_URL")
+
 
 def get_connection():
 
-    
-
+    db_url = os.getenv("DATABASE_URL")
     return psycopg2.connect(
         db_url,
         cursor_factory=RealDictCursor

@@ -133,15 +133,15 @@ import psycopg
 
 load_dotenv()
 
-vector_db_url = os.getenv("VECTOR_DB_URL")
 
-db_url =os.getenv("DATABASE_URL")
 
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
 def get_vector_store():
+    vector_db_url = os.getenv("VECTOR_DB_URL")
+
     return PGVector(
         embeddings=embeddings,
         collection_name="documents",
@@ -152,6 +152,8 @@ def get_vector_store():
 # def thread_has_document(thread_id: str) -> bool:
 #     return str(thread_id) in _THREAD_METADATA
 def thread_has_document(thread_id: str):
+    db_url =os.getenv("DATABASE_URL")
+
 
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cursor:
@@ -173,6 +175,9 @@ def thread_has_document(thread_id: str):
 #     return _THREAD_METADATA.get(str(thread_id), {})
 
 def thread_document_metadata(thread_id: str , user_email : str):
+
+    db_url =os.getenv("DATABASE_URL")
+
 
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cursor:
@@ -311,6 +316,9 @@ def ingest_pdf(file_bytes: bytes, thread_id: str, filename: Optional[str] = None
             )
 
         vector_store.add_documents(chunks)
+
+        db_url =os.getenv("DATABASE_URL")
+
 
         with psycopg.connect(db_url) as conn:
             
