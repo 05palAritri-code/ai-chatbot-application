@@ -205,7 +205,7 @@ def thread_document_metadata(thread_id: str , user_email : str):
 
 def _get_retriever(thread_id: Optional[str]):
 
-    print("RETRIEVER THREAD:", thread_id)
+    # print("RETRIEVER THREAD:", thread_id)
 
     if not thread_id:
         return None
@@ -289,9 +289,10 @@ def ingest_pdf(file_bytes: bytes, thread_id: str, filename: Optional[str] = None
                 "Unable to extract content from this PDF."
             )
 
-        actual_filename = (
-            filename or os.path.basename(temp_path)
-        )
+        # actual_filename = (
+        #     filename or os.path.basename(temp_path)
+        # )
+        actual_filename = filename or "uploaded.pdf"
 
         vector_store = get_vector_store()
 

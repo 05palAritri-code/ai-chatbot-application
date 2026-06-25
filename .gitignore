@@ -5,3 +5,4 @@ venv/
 .env
 *.db
 *.bin
+note.txt/

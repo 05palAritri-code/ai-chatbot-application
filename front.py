@@ -230,7 +230,7 @@ def show_app():
 
         with st.sidebar:
             st.markdown(f"### {st.session_state.username}")
-            st.write(st.session_state["email"])
+            # st.write(st.session_state["email"])
 
             if st.button("Logout"):
 
@@ -321,9 +321,9 @@ def show_app():
                         except ValueError as e:
                             st.error(f"Failed to process PDF: {e}")
                             st.stop
-                        except Exception as e:
+                        except Exception:
                             st.error(
-                                f"Something went wrong while processing the PDF.{e}"
+                                "Something went wrong while processing the PDF."
                             )
                             st.stop()
 
@@ -471,54 +471,54 @@ def show_app():
 
                                 if(isinstance(content, str)and content.startswith("{")and "context" in content):
                                     continue
-                                    temp_message.append({
-                                        "role": role,
-                                        "content": content
-                                    })
+                                temp_message.append({
+                                    "role": role,
+                                    "content": content
+                                })
 
-                                st.session_state['message_history'] = temp_message
+                            st.session_state['message_history'] = temp_message
+
+                            st.rerun()
+
+                    with col2:
+
+                        with st.popover(""):
+
+                                    # ---------------- DELETE ----------------
+                            if st.button("Delete", key=f"del_{thread_id}"):
+
+                                delete_thread(thread_id)
+
+                                if thread_id in st.session_state['chat_threads']:
+                                    st.session_state['chat_threads'].remove(thread_id)
+
+                                        # if current chat deleted
+                                if st.session_state.get("thread_id") == thread_id:
+
+                                    st.session_state['thread_id'] = generate_thread_id()
+                                    st.session_state['message_history'] = []
 
                                 st.rerun()
 
-                        with col2:
-
-                            with st.popover(""):
-
-                                    # ---------------- DELETE ----------------
-                                if st.button("Delete", key=f"del_{thread_id}"):
-
-                                    delete_thread(thread_id)
-
-                                    if thread_id in st.session_state['chat_threads']:
-                                        st.session_state['chat_threads'].remove(thread_id)
-
-                                        # if current chat deleted
-                                    if st.session_state.get("thread_id") == thread_id:
-
-                                        st.session_state['thread_id'] = generate_thread_id()
-                                        st.session_state['message_history'] = []
-
-                                    st.rerun()
-
                                     # ---------------- RENAME OPEN ----------------
-                                if st.button("Rename", key=f"rename_btn_{thread_id}"):
+                            if st.button("Rename", key=f"rename_btn_{thread_id}"):
 
-                                    st.session_state["rename_thread"] = thread_id
+                                st.session_state["rename_thread"] = thread_id
 
                                     # ---------------- RENAME INPUT ----------------
-                                if st.session_state.get("rename_thread") == thread_id:
+                            if st.session_state.get("rename_thread") == thread_id:
 
-                                    new_name = st.text_input(
-                                        "New Chat Name",
-                                        key=f"rename_input_{thread_id}"
-                                    )
+                                new_name = st.text_input(
+                                    "New Chat Name",
+                                    key=f"rename_input_{thread_id}"
+                                )
 
-                                    if st.button("Save", key=f"save_{thread_id}"):
+                                if st.button("Save", key=f"save_{thread_id}"):
 
-                                        rename_thread(thread_id, new_name)
-                                        del st.session_state["rename_thread"]
+                                    rename_thread(thread_id, new_name)
+                                    del st.session_state["rename_thread"]
 
-                                        st.rerun()
+                                    st.rerun()
 
     #---------------------------------------------Main UI-------------------------------------------------
 
