@@ -3,6 +3,7 @@
 ## Overview
 
 An AI-powered Study Assistant that helps users learn concepts, analyze documents, conduct research, and interact with uploaded PDF files through a conversational interface.
+link : https://aichatbot-assistant.streamlit.app/
 
 ## Features
 
