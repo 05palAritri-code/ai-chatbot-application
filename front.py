@@ -172,8 +172,8 @@ def show_auth():
                     cookies["email"] = email
                     cookies["username"] = user["username"]
                     cookies.save()
-                    print("COOKIE SAVED:", cookies.get("logged_in"))
-                    print("COOKIE USER:", cookies.get("username"))
+                    # print("COOKIE SAVED:", cookies.get("logged_in"))
+                    # print("COOKIE USER:", cookies.get("username"))
 
 
                     st.rerun()
