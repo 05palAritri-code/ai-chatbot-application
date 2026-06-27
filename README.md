@@ -45,7 +45,7 @@ link : https://aichatbot-assistant.streamlit.app/
 
 ### Document Processing
 
-* PyPDF
+* PyMUPDF
 * LangChain Document Loaders
 * Recursive Character Text Splitter
 
