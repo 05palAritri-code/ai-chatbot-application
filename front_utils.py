@@ -52,5 +52,10 @@ def restore_session():
                 st.session_state.logged_in = True
                 st.session_state.username = session["username"]
                 st.session_state["email"] = session["email"]
+
+                # Store token in session state then clean URL
+                st.session_state["session_token"] = token
+                st.query_params.clear()  # ← removes token from URL
+                
             else:
                 st.query_params.clear()

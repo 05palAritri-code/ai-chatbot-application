@@ -195,8 +195,9 @@ def show_auth():
 
                 if user:
                     token = create_session(user["username"], user["email"])
+                    st.session_state["session_token"] = token
                     st.query_params["token"] = token
-                    
+                
                     st.session_state.logged_in = True
                     st.session_state.username = user["username"]
                     st.session_state["email"] = user["email"]
