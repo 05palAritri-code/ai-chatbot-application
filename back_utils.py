@@ -4,6 +4,9 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import psycopg
 import os
+import uuid
+from datetime import datetime, timedelta, timezone
+
 load_dotenv()
 
 db_url = os.getenv("DATABASE_URL")
@@ -318,3 +321,72 @@ def load_messages(thread_id):
         print("LOAD MESSAGE ERROR:", e)
 
         return []
+    
+
+
+def create_session(username: str, email: str) -> str:
+    token = str(uuid.uuid4())
+    expires_at = datetime.utcnow() + timedelta(days=7)
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM sessions WHERE username = %s",
+        (username,)
+    )
+
+    cursor.execute(
+        """
+        INSERT INTO sessions (session_token, username, email, expires_at)
+        VALUES (%s, %s, %s, %s)
+        """,
+        (token, username, email, expires_at)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return token
+
+def get_session(token: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT username, email, expires_at
+        FROM sessions
+        WHERE session_token = %s
+        """,
+        (token,)
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not row:
+        return None
+
+    now = datetime.now(timezone.utc)
+    expires_at = row["expires_at"]
+    
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if now > expires_at:
+        delete_session(token)
+        return None
+    
+    print("GET SESSION - token:", token, "row:", row, "expires:", row["expires_at"] if row else None)
+
+    return {"username": row["username"], "email": row["email"]}
+
+def delete_session(token: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM sessions WHERE session_token = %s",
+        (token,)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()

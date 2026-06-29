@@ -1,7 +1,7 @@
 import hashlib
 import streamlit as st
 import uuid
-from back_utils import ( get_thread_title , load_messages )
+from back_utils import ( get_thread_title , load_messages , get_session )
 
 def generate_thread_id():
     thread_id = str(uuid.uuid4())
@@ -38,3 +38,19 @@ def generate_title(thread_id):
 def get_file_hash(file_bytes):
 
     return hashlib.md5(file_bytes).hexdigest()
+
+def restore_session():
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+        st.session_state.username = None
+        st.session_state["email"] = None
+
+        token = st.query_params.get("token")
+        if token:
+            session = get_session(token)
+            if session:
+                st.session_state.logged_in = True
+                st.session_state.username = session["username"]
+                st.session_state["email"] = session["email"]
+            else:
+                st.query_params.clear()

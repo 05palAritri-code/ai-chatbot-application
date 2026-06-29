@@ -68,5 +68,15 @@ def initialize_database():
     )
     """)
 
-    checkpointer = None
+    cursor.execute("""
+    CREATE TABLE sessions (
+    id SERIAL PRIMARY KEY,
+    session_token TEXT UNIQUE NOT NULL,
+    username TEXT NOT NULL,
+    email TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL
+    )
+    """)
+
 

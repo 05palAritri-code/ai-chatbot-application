@@ -1,5 +1,7 @@
 from back_utils import (
-    load_messages ,  rename_thread , delete_thread , retrive_threads , save_message , uploads_last_24_hours ,save_thread , next_upload_time , get_thread_title
+    load_messages ,  rename_thread , delete_thread , retrive_threads , save_message , 
+    uploads_last_24_hours ,save_thread , next_upload_time , get_thread_title ,
+    create_session , delete_session
 )
 from front_utils import (
     reset_chat,generate_thread_id , add_thread ,generate_title
@@ -10,29 +12,61 @@ from langchain_core.messages import AIMessage, HumanMessage
 from streamlit_cookies_manager import EncryptedCookieManager
 import streamlit as st
 from ingest import ingest_pdf, thread_document_metadata
-import signal
 
 
-cookies = EncryptedCookieManager(
-    prefix="myapp",
-    password="some-secret-key"
-)
+# # Always initialize
+# if "logged_in" not in st.session_state:
+#     st.session_state.logged_in = False
 
-if not cookies.ready():
-    st.stop()
+# if "username" not in st.session_state:
+#     st.session_state.username = None
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = cookies.get("logged_in") == "true"
+# if "email" not in st.session_state:
+#     st.session_state.email = None
 
-if "username" not in st.session_state:
-    st.session_state.username = cookies.get("username")
+    
+# if "logged_in" not in st.session_state:
+#     st.session_state.logged_in = False
+#     st.session_state.username = None
+#     st.session_state["email"] = None
 
-if "email" not in st.session_state:
-    st.session_state["email"] = None
+#     token = st.query_params.get("token")
 
-if cookies.get("logged_in") == "true":
-    st.session_state.logged_in = True
-    st.session_state.username = cookies.get("username")
+#     if not token:
+#         token = st.query_params.get("token")
+
+#     if token:
+
+#         session = get_session(token)
+
+#         if session:
+#             st.session_state.logged_in = True
+#             st.session_state.username = session["username"]
+#             st.session_state["email"] = session["email"]
+#         else:
+#             st.query_params.clear()
+
+# cookies = EncryptedCookieManager(
+#     prefix="myapp",
+#     password="some-secret-key"
+# )
+
+# if not cookies.ready():
+#     st.stop()
+
+# if "logged_in" not in st.session_state:
+#     st.session_state.logged_in = cookies.get("logged_in") == "true"
+
+# if "username" not in st.session_state:
+#     st.session_state.username = cookies.get("username")
+
+# if "email" not in st.session_state:
+#     st.session_state["email"] = None
+
+# if cookies.get("logged_in") == "true":
+#     st.session_state.logged_in = True
+#     st.session_state.username = cookies.get("username")
+#     st.session_state["email"] = cookies.get("email")
 
 
 def show_auth():
@@ -160,23 +194,32 @@ def show_auth():
                 user = login_user(email, password)
 
                 if user:
+                    token = create_session(user["username"], user["email"])
+                    st.query_params["token"] = token
+                    
                     st.session_state.logged_in = True
-                    st.session_state.username = user["username"]  
+                    st.session_state.username = user["username"]
                     st.session_state["email"] = user["email"]
 
+                    st.rerun()
 
-                    if st.session_state['email'] not in st.session_state:
-                        st.session_state['chat_threads'] = retrive_threads(st.session_state.username)
+                    # st.session_state.logged_in = True
+                    # st.session_state.username = user["username"]  
+                    # st.session_state["email"] = user["email"]
 
-                    cookies["logged_in"] = "true"
-                    cookies["email"] = email
-                    cookies["username"] = user["username"]
-                    cookies.save()
+
+                    # if st.session_state['email'] not in st.session_state:
+                    #     st.session_state['chat_threads'] = retrive_threads(st.session_state.username)
+
+                    # cookies["logged_in"] = "true"
+                    # cookies["email"] = email
+                    # cookies["username"] = user["username"]
+                    # cookies.save()
                     # print("COOKIE SAVED:", cookies.get("logged_in"))
                     # print("COOKIE USER:", cookies.get("username"))
 
 
-                    st.rerun()
+                    # st.rerun()
                 
                 else:
                     st.error("Invalid credentials")
@@ -234,32 +277,39 @@ def show_app():
 
             if st.button("Logout"):
 
-                st.session_state.logged_in = False
-                st.session_state.username = None
-                st.session_state["email"] = None
+                token = st.query_params.get("token")
+                if token:
+                    delete_session(token)
 
-                if 'chat_threads' in st.session_state:
-                    del st.session_state['chat_threads']
+                st.query_params.clear()
 
-                if 'last_user' in st.session_state:
-                    del st.session_state['last_user']
+                st.session_state.clear()
 
-                st.session_state['message_history'] = []
-                st.session_state['thread_id'] = None
+                # st.session_state.logged_in = False
+                # st.session_state.username = None
+                # st.session_state["email"] = None
+                # st.session_state['message_history'] = []
+                # st.session_state['thread_id'] = None
+
+                # if 'chat_threads' in st.session_state:
+                #     del st.session_state['chat_threads']
+
+                # if 'last_user' in st.session_state:
+                #     del st.session_state['last_user']
+
+                
 
 
-                cookies["logged_in"] = ""
-                cookies["username"] = ""
-                cookies["email"] = ""
+                # cookies["logged_in"] = ""
+                # cookies["username"] = ""
+                # cookies["email"] = ""
 
-                cookies.save()
+                # cookies.save()
 
                 # print("COOKIE AFTER CLEAR:", cookies.get("username"))
                 
                 st.rerun()
                 
-
-
             if st.button('New Chat'):
                 reset_chat()
 
